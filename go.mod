@@ -1,6 +1,6 @@
 module github.com/vmware-tanzu/octant
 
-go 1.24.1
+go 1.24
 
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.2.1
