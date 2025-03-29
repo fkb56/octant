@@ -19,11 +19,11 @@ import { ApplicationMenu } from './electron/application-menu';
 import { TrayMenu } from './electron/tray-menu';
 import { apiLogPath, errLogPath, tmpPath, iconPath } from './electron/paths';
 import { electronStore } from './electron/store';
-import * as path from 'path';
-import * as child_process from 'child_process';
-import * as process from 'process';
-import * as os from 'os';
-import * as fs from 'fs';
+import path from 'path';
+import child_process from 'child_process';
+import process from 'process';
+import os from 'os';
+import fs from 'fs';
 
 let win: BrowserWindow = null;
 let serverPid: any = null;
