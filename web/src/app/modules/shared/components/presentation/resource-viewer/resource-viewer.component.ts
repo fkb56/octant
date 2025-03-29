@@ -17,13 +17,14 @@ import {
   Node,
   ResourceViewerView,
 } from 'src/app/modules/shared/models/content';
-import { ElementsDefinition, Stylesheet } from 'cytoscape';
+import { ElementsDefinition } from 'cytoscape';
 import { AbstractViewComponent } from '../../abstract-view/abstract-view.component';
 import { ELEMENTS_STYLE, ELEMENTS_STYLE_DARK } from './octant.style';
 import { Router } from '@angular/router';
 import { ThemeService } from '../../../services/theme/theme.service';
 import { Subscription } from 'rxjs';
 import { ResizeEvent } from 'angular-resizable-element';
+import cytoscape from 'cytoscape';
 
 const statusColorCodes = {
   ok: '#60b515',
@@ -74,7 +75,7 @@ export class ResourceViewerComponent
 
   zoom = defaultZoom;
 
-  style: Stylesheet[] = ELEMENTS_STYLE;
+  style: cytoscape.Style[] = ELEMENTS_STYLE;
   graphData: ElementsDefinition;
 
   constructor(

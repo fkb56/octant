@@ -15,6 +15,7 @@ import {
   ViewChild,
 } from '@angular/core';
 
+// @ts-ignore
 import cytoscape, { NodeCollection, SingularData, Stylesheet } from 'cytoscape';
 import dagre from 'cytoscape-dagre';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
@@ -84,7 +85,8 @@ export class CytoscapeComponent implements OnChanges, OnDestroy {
     this.instance.on('tap', 'node', e => {
       const currentTapStamp = e.timeStamp;
       const msFromLastTap = currentTapStamp - this.previousTapStamp;
-      const node: SingularData = e.target;
+      // TODO: Modify type
+      const node: any = e.target;
 
       if (msFromLastTap < this.doubleClickDelay) {
         localDoubleClick.emit(node.data());

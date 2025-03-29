@@ -5,7 +5,7 @@
     "typeRoots": [
       "./types"
     ],
-    "lib": ["es5", "es6", "dom"]
+    "lib": ["es5", "es6", "dom", "es2018", "es2017", "es2016"]
   },
   "files": [
     "main.ts",

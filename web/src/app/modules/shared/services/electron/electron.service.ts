@@ -5,8 +5,7 @@
 
 import { Injectable } from '@angular/core';
 import { ipcRenderer, webFrame } from 'electron';
-import * as childProcess from 'child_process';
-import * as fs from 'fs';
+// import * as childProcess from 'child_process';
 import { PreferencesService } from '../preferences/preferences.service';
 
 @Injectable({
@@ -15,8 +14,10 @@ import { PreferencesService } from '../preferences/preferences.service';
 export class ElectronService {
   ipcRenderer: typeof ipcRenderer;
   webFrame: typeof webFrame;
-  childProcess: typeof childProcess;
-  fs: typeof fs;
+  // TODO: Modify type
+  childProcess: any;
+  // TODO: Modify type
+  fs: any;
 
   public portNumber: number;
   constructor(private preferencesService: PreferencesService) {
@@ -64,13 +65,21 @@ export class ElectronService {
       return '';
     }
 
-    switch (process.platform) {
-      case 'linux':
-      case 'darwin':
-      case 'win32':
-        return process.platform;
-      default:
-        return 'unknown';
+    try {
+      // @ts-ignore
+      const platform = typeof process !== 'undefined' ? process.platform : window.process?.platform;
+
+      switch (platform) {
+        case 'linux':
+        case 'darwin':
+        case 'win32':
+          return platform;
+        default:
+          return 'unknown';
+      }
+    } catch (e) {
+      console.warn('Unable to determine platform:', e);
+      return 'unknown';
     }
   }
 }

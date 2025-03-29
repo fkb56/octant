@@ -13,6 +13,12 @@ import {
 import { ThemeService } from '../theme/theme.service';
 import { PreferencesEntry } from './preferences.entry';
 
+declare global {
+  interface Window {
+    require: any;
+  }
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -27,7 +33,15 @@ export class PreferencesService implements OnDestroy {
 
   constructor(private themeService: ThemeService) {
     if (this.isElectron()) {
-      const Store = window.require('electron-store');
+      let Store: any;
+      try {
+        if (window.require) {
+          Store = window.require('electron-store');
+        }
+      } catch (e) {
+        console.warn('Electron Store not available');
+        // Utiliser une alternative pour le stockage (localStorage par exemple)
+      }
       this.electronStore = new Store();
     }
 
@@ -114,13 +128,22 @@ export class PreferencesService implements OnDestroy {
   }
 
   isElectron(): boolean {
-    if (typeof process === 'undefined') {
+    try {
+      const userAgent = navigator.userAgent.toLowerCase();
+      return userAgent.indexOf(' electron/') > -1;
+    } catch (e) {
       return false;
     }
-    return (
-      process && process.versions && process.versions.electron !== undefined
-    );
   }
+
+  // isElectron(): boolean {
+  //   if (typeof process === 'undefined') {
+  //     return false;
+  //   }
+  //   return (
+  //     process && process.versions && process.versions.electron !== undefined
+  //   );
+  // }
 
   public preferencesChanged(update: Preferences) {
     let notificationRequired = false;

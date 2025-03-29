@@ -14,7 +14,7 @@ import {
   ViewChild,
 } from '@angular/core';
 
-import cytoscape, { NodeSingular, SingularData, Stylesheet } from 'cytoscape';
+import cytoscape, { NodeSingular, SingularData } from 'cytoscape';
 import { hideChildren, positionChildren } from './octant.layout';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import octant from './octant.layout';
@@ -40,7 +40,8 @@ cytoscape('layout', 'octant', octant);
 export class Cytoscape2Component implements OnChanges {
   @ViewChild('cy', { static: true }) private cy: ElementRef;
   @Input() public elements: any;
-  @Input() public style: Stylesheet[];
+  // TODO: Modify type
+  @Input() public style: any[];
   @Input() public layout: any;
   @Input() public zoom: any;
 
@@ -86,7 +87,8 @@ export class Cytoscape2Component implements OnChanges {
     this.cytoscape = cytoscape(options);
 
     this.cytoscape.on('tap', 'node', e => {
-      const node: SingularData = e.target;
+      // TODO: Modify type
+      const node: any = e.target;
       localSelect.emit(node.data());
     });
 
