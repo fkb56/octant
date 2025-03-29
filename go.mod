@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.2.1
-	github.com/containers/image/v5 v5.16.1
+	github.com/containers/image/v5 v5.34.3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/dop251/goja v0.0.0-20200629185240-bfd59704b500
@@ -42,12 +42,12 @@ require (
 	go.uber.org/zap v1.20.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/tools v0.1.5
-	google.golang.org/grpc v1.44.0
+	google.golang.org/grpc v1.64.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.36.6
 	k8s.io/api v0.21.3
 	k8s.io/apiextensions-apiserver v0.21.3
-	k8s.io/apimachinery v0.21.3
+	k8s.io/apimachinery v0.29.0
 	k8s.io/client-go v0.21.3
 	k8s.io/klog v1.0.0
 	k8s.io/kube-aggregator v0.21.3
