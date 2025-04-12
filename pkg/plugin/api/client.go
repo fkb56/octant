@@ -24,7 +24,7 @@ import (
 //go:generate mockgen -destination=./fake/mock_dashboard_client.go -package=fake github.com/vmware-tanzu/octant/pkg/plugin/api/proto DashboardClient
 //go:generate mockgen -destination=./fake/mock_dashboard_connection.go -package=fake github.com/vmware-tanzu/octant/pkg/plugin/api DashboardConnection
 
-const MaxMessageSize int = 1024 * 1024 * 16
+const MaxMessageSize int = 1024 * 1024 * 32
 
 type DashboardConnection interface {
 	Close() error

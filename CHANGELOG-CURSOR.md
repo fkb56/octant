@@ -212,83 +212,38 @@ go run build.go serve
 
 Ces modifications devraient résoudre les erreurs de compilation TypeScript et permettre à l'application de fonctionner correctement. 
 
-## Erreurs de taille de message gRPC
+## Augmentation de la limite de taille des messages gRPC
 
-Après avoir corrigé les problèmes de compilation TypeScript et OpenSSL, nous avons rencontré une nouvelle erreur liée au serveur gRPC :
-
+Pour résoudre l'erreur de taille de message gRPC:
 ```
 generate content: grpc client content: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (19752553 vs. 16777216)
 ```
 
-Cette erreur indique que les messages gRPC générés par le plugin Helm sont trop volumineux et dépassent la limite maximale par défaut de 16 Mo.
+Nous avons apporté la modification suivante:
 
-### Solutions possibles
+1. **Augmentation de la constante MaxMessageSize** dans le fichier `pkg/plugin/api/client.go`:
+   ```diff
+   - const MaxMessageSize int = 1024 * 1024 * 16
+   + const MaxMessageSize int = 1024 * 1024 * 32
+   ```
 
-Pour résoudre cette erreur, plusieurs approches peuvent être utilisées :
+La constante `MaxMessageSize` est utilisée par défaut pour configurer:
+- La limite de réception côté client via `grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(...))`
+- La limite de réception côté serveur via `grpc.MaxRecvMsgSize(...)` dans la configuration du serveur gRPC
 
-1. **Augmenter la limite de taille des messages gRPC** :
-   - Modifier le code pour augmenter la limite `MaxRecvMsgSize` et `MaxSendMsgSize` dans la configuration gRPC
-   - Chercher dans le code source où ces limites sont définies (probablement dans un fichier Go lié à la configuration gRPC)
+Cette modification augmente la limite de 16 Mo à 32 Mo, ce qui devrait être suffisant pour gérer les messages volumineux générés par le plugin Helm.
 
-2. **Réduire la taille des données transmises** :
-   - Examiner pourquoi le plugin Helm génère des données aussi volumineuses
-   - Ajouter une pagination ou un filtrage des données pour réduire la taille des messages
+### Tests de la modification
 
-3. **Désactiver temporairement le plugin Helm** :
-   - Si vous n'avez pas besoin des fonctionnalités Helm, renommer ou déplacer temporairement le plugin Helm pour qu'il ne soit pas chargé
+Pour vérifier que la modification est effective:
 
-### Exemple de modification pour augmenter la limite
+1. Redémarrez Octant: `go run build.go serve`
+2. Vérifiez qu'il n'y a plus d'erreur `ResourceExhausted` dans les logs
+3. Si vous utilisez le plugin Helm, vérifiez que les fonctionnalités liées à Helm fonctionnent correctement
 
-Si vous souhaitez modifier le code pour augmenter la limite, vous devrez identifier où la configuration gRPC est définie. Par exemple, recherchez des fichiers contenant `grpc.NewServer` ou `MaxRecvMsgSize`.
-
-```go
-// Exemple de code à chercher et modifier
-opts := []grpc.ServerOption{
-    grpc.MaxRecvMsgSize(16 * 1024 * 1024), // Augmenter à 32 Mo : 32 * 1024 * 1024
-    grpc.MaxSendMsgSize(16 * 1024 * 1024), // Augmenter à 32 Mo : 32 * 1024 * 1024
-}
-```
-
-## Résumé des commandes à exécuter pour résoudre tous les problèmes
+### Commit des modifications
 
 ```bash
-# 1. Arrêter les processus existants
-lsof -i :7777 -t | xargs kill -9 && lsof -i :4200 -t | xargs kill -9 || true
-
-# 2. Configurer Node.js pour utiliser le fournisseur OpenSSL hérité
-export NODE_OPTIONS=--openssl-legacy-provider
-
-# 3. Installer les dépendances TypeScript correctes
-cd web
-bun add -d typescript@4.3.5
-bun add -d @types/lodash@4.14.191
-
-# 4. Désactiver temporairement le plugin Helm (optionnel - si vous n'avez pas besoin du plugin Helm)
-# Renommer ou déplacer temporairement le plugin
-mv ~/.config/octant/plugins/octant-helm ~/.config/octant/plugins/octant-helm.disabled
-
-# 5. Pour une solution permanente à l'erreur gRPC, modifier ~/.zshrc pour augmenter la limite
-echo 'export CLIENT_MAX_RECV_MSG_SIZE=33554432' >> ~/.zshrc
-source ~/.zshrc
-
-# 6. Exécuter l'application avec la configuration mise à jour
-cd ..
-go run build.go serve
-```
-
-Pour rendre les modifications permanentes, ajoutez ces lignes à votre `~/.zshrc` :
-```bash
-# Configuration pour Octant
-export NODE_OPTIONS=--openssl-legacy-provider
-export CLIENT_MAX_RECV_MSG_SIZE=33554432
-```
-
-## Commit des modifications
-
-```bash
-# Ajouter les fichiers modifiés
-git add web/package.json CHANGLOG-CURSOR.md
-
-# Commit avec un message descriptif
-git commit -m "fix: résolution des problèmes de compatibilité avec Node.js v23 et augmentation des limites gRPC"
+git add pkg/plugin/api/client.go CHANGELOG-CURSOR.md
+git commit -m "fix: augmenter la limite de taille des messages gRPC de 16Mo à 32Mo"
 ```
