@@ -10,26 +10,38 @@
 
 ## Démarrage Rapide
 
-    git clone git@github.com:vmware-tanzu/octant.git
-    cd octant
-    go run build.go go-install      # installer les dépendances Go.
-    export NG_CLI_ANALYTICS=false   # si vous souhaitez désactiver les analyses Angular CLI ou
-    export NG_CLI_ANALYTICS=ci      # si vous souhaitez activer les analyses Angular CLI
-    go run build.go ci-quick        # construire l'UI, générer les fichiers UI, et créer le binaire octant.
-    ./build/octant                  # exécuter le binaire Octant que vous venez de construire
+```sh
+git clone git@github.com:fkb56/octant.git
+
+cd octant
+
+go run build.go go-install      # installer les dépendances Go.
+
+export NG_CLI_ANALYTICS=false   # si vous souhaitez désactiver les analyses Angular CLI ou
+
+export NG_CLI_ANALYTICS=ci      # si vous souhaitez activer les analyses Angular CLI
+
+go run build.go ci-quick        # construire l'UI, générer les fichiers UI, et créer le binaire octant.
+
+./build/octant                  # exécuter le binaire Octant que vous venez de construire
+```
 
 ## Tests
 
 Nous exigeons généralement que des tests soient ajoutés pour toutes les modifications, à l'exception des plus triviales. Vous pouvez exécuter govet et les tests en utilisant les commandes ci-dessous :
 
-    go run build.go vet
-    go run build.go test
+```sh
+go run build.go vet
+go run build.go test
+```
 
 ## Développement
 
 Lors de modifications apportées au frontend, il peut être utile que ces modifications déclenchent la reconstruction de l'UI. Octant fournit un raccourci en utilisant :
 
-    go run build.go serve
+```sh
+go run build.go serve
+```
 
 La commande `serve` démarre deux processus. Le premier est un alias pour `npm run start` et surveillera les changements pour reconstruire l'UI.
 Le serveur UI sera lancé sur `http://localhost:4200`.
@@ -46,7 +58,7 @@ Cette commande exécutera nos outils de linting et notre suite de tests ainsi qu
 
 Octant a configuré [Storybook](https://storybook.js.org/) pour faciliter le développement des composants pour le frontend. Pour démarrer Storybook, exécutez
 
-```console
-$ cd web
-$ npm run storybook
+```sh
+cd web
+npm run storybook
 ```
