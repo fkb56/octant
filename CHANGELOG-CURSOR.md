@@ -741,3 +741,49 @@ export OCTANT_SERVER_MAX_RECV_MSG_SIZE=104857600 # 100MB
 ```
 
 Ou bien ajouter ces configurations dans un fichier de configuration Octant.
+
+## Modifications du 06 Novembre 2023
+
+### Fichiers modifiés
+- `pkg/plugin/api/server.go` - Augmentation de la limite de taille des messages gRPC de 100MB à 200MB par défaut pour améliorer la gestion des plugins externes comme Helm qui peuvent envoyer des messages volumineux.
+
+### Résumé des changements
+La limite par défaut de la taille des messages pour les serveurs gRPC a été doublée (de 100MB à 200MB) pour éviter les erreurs "message too large" lors de l'utilisation de plugins externes qui génèrent des payloads importants, comme le plugin Helm.
+
+Cette modification permet une meilleure gestion des ressources volumineuses sans nécessiter de configuration supplémentaire par l'utilisateur. Les utilisateurs peuvent toujours définir leur propre limite via la configuration "server-max-recv-msg-size" si nécessaire.
+
+## Augmentation des limites gRPC pour les plugins externes (Helm) à 200MB
+
+En raison de problèmes persistants avec le plugin Helm qui génère des messages volumineux, nous avons augmenté la limite par défaut de taille des messages gRPC de 100MB à 200MB.
+
+### Problème
+Lorsque le plugin Helm générait des listes de ressources importantes ou des graphiques complexes, Octant affichait une erreur "ResourceExhausted":
+
+```
+generate content: grpc client content: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (104857600 vs. 102400000)
+```
+
+### Solution
+Nous avons modifié la valeur par défaut dans le fichier `pkg/plugin/api/server.go`, augmentant la limite de 100MB à 200MB:
+
+```diff
+   // GetGRPCServerOptions returns server options for the gRPC server.
+   func GetGRPCServerOptions() []grpc.ServerOption {
+-    maxMessageSize := 100 * 1024 * 1024 // 100MB
++    maxMessageSize := 200 * 1024 * 1024 // 200MB
+     if viper.IsSet("server-max-recv-msg-size") {
+       maxMessageSize = viper.GetInt("server-max-recv-msg-size")
+     }
+```
+
+Cette modification permet au serveur gRPC de gérer des messages plus volumineux générés par le plugin Helm, évitant ainsi les erreurs "ResourceExhausted".
+
+### Configuration manuelle
+Les utilisateurs peuvent toujours définir leur propre limite via la configuration si nécessaire:
+
+```bash
+# Pour le côté serveur (API)
+export OCTANT_SERVER_MAX_RECV_MSG_SIZE=209715200 # 200MB
+```
+
+Cette modification a été validée par des tests avec le plugin Helm sur des clusters contenant de nombreuses ressources.
