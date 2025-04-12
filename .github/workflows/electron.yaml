@@ -20,14 +20,37 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.17.x
+      - name: Install dependencies
+        run: |
+          cd web && bun install
       - name: Build binary
         env:
           GOFLAGS: -mod=vendor
         run: |
           go run build.go build-electron
-      - name: Build electron
-        uses: samuelmeuli/action-electron-builder@v1.6.0
+      - name: Build Electron (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd web
+          export NODE_OPTIONS=--openssl-legacy-provider
+          bun run build-electron
+          bun electron-builder --mac -p never
+      - name: Build Electron (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd web
+          export NODE_OPTIONS=--openssl-legacy-provider
+          bun run build-electron
+          bun electron-builder --linux -p never
+      - name: Build Electron (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd web
+          set NODE_OPTIONS=--openssl-legacy-provider
+          bun run build-electron
+          bun electron-builder --win -p never
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          package_root: 'web'
-          build_script_name: 'build-electron'
+          name: electron-${{ matrix.os }}
+          path: web/release

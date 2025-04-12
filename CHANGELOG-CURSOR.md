@@ -541,7 +541,7 @@ Nous avons effectué les modifications suivantes:
 
 1. **Adaptation de la fonction `verifyNpmCache` dans `build.go` pour Bun**:
    
-   Bun n'ayant pas d'équivalent à la commande `npm cache verify`, nous avons modifié la fonction pour qu'elle soit compatible avec Bun:
+   Bun n'ayant pas d'équivalent à la commande `cache verify` comme npm, nous avons modifié la fonction pour qu'elle soit compatible avec Bun:
    
    ```go
    func verifyNpmCache() {
@@ -580,6 +580,52 @@ Nous avons effectué les modifications suivantes:
    - `bundle_assets`
 
 Ces modifications garantissent la compatibilité avec Bun et évitent les erreurs lors de la vérification du cache et de l'exécution des tests.
+
+## Correction des problèmes de build Electron
+
+Pour résoudre l'erreur lors du build Electron:
+
+```
+⨯ corrupted Electron dist  failedTask=build stackTrace=Error: corrupted Electron dist
+```
+
+Nous avons effectué les modifications suivantes:
+
+1. **Suppression de `electronDist` dans `web/electron-builder.json`**:
+   
+   ```diff
+   - "electronDist": "/usr/local/bin"
+   ```
+   
+   Le paramètre `electronDist` forçait l'utilisation d'un chemin spécifique pour Electron, ce qui causait des problèmes dans l'environnement GitHub Actions.
+
+2. **Modification du workflow `electron.yaml` pour construire Electron directement**:
+   
+   Nous avons remplacé l'action `samuelmeuli/action-electron-builder` qui utilisait Yarn par une approche personnalisée avec Bun:
+   
+   ```yaml
+   - name: Build Electron (macOS)
+     if: matrix.os == 'macos-latest'
+     run: |
+       cd web
+       export NODE_OPTIONS=--openssl-legacy-provider
+       bun run build-electron
+       bun electron-builder --mac -p never
+   ```
+   
+   Des étapes similaires ont été ajoutées pour Linux et Windows, chacune avec les options spécifiques à la plateforme.
+
+3. **Ajout d'une étape d'installation des dépendances**:
+   
+   ```yaml
+   - name: Install dependencies
+     run: |
+       cd web && bun install
+   ```
+   
+   Cette étape garantit que toutes les dépendances sont correctement installées avant de construire l'application Electron.
+
+Ces modifications permettent de construire correctement l'application Electron sur différentes plateformes en utilisant Bun au lieu de Yarn, en évitant les erreurs liées au chemin d'Electron.
 
 # Journal des modifications effectuées
 

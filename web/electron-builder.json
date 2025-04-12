@@ -44,6 +44,5 @@
   },
   "nodeGypRebuild": false,
   "npmRebuild": false,
-  "buildDependenciesFromSource": false,
-  "electronDist": "/usr/local/bin"
+  "buildDependenciesFromSource": false
 }
