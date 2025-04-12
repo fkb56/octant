@@ -632,3 +632,34 @@ Si le passage à Python 2.7 n'est pas souhaitable à long terme, les options sui
 3. **Remplacer dmg-builder**: Utiliser un autre outil pour la création de DMG qui soit compatible avec Python 3.
 
 Cette modification temporaire avec Python 2.7 permet de continuer les builds macOS en attendant une solution plus pérenne.
+
+## Mise à jour d'Electron - [Date: `date +%Y-%m-%d`]
+
+### Modifications effectuées
+
+1. Mise à jour des dépendances dans `web/package.json`:
+   - Electron: de la version `^13.2.3` à `^25.9.7`
+   - electron-builder: de la version `^22.12.0` à `^24.8.0`
+
+2. Suppression de l'étape de pin des versions d'Electron dans le workflow GitHub `.github/workflows/electron.yaml` car nous utilisons maintenant des versions plus récentes compatibles avec Python 3.
+
+### Pourquoi ces changements?
+
+- Les versions précédentes d'Electron étaient obsolètes et pouvaient présenter des problèmes de sécurité.
+- Les nouvelles versions offrent de meilleures performances et une meilleure compatibilité avec les systèmes récents.
+- La version 24+ d'electron-builder a une meilleure compatibilité avec Python 3.
+
+### Problèmes potentiels et solutions
+
+Si des problèmes surviennent pendant le build avec les nouvelles versions:
+
+1. **Problème de compatibilité avec l'API Electron**:
+   - Si le code utilise des API obsolètes, consulter la [documentation de migration d'Electron](https://www.electronjs.org/docs/latest/breaking-changes) pour adapter le code.
+
+2. **Problèmes de build avec electron-builder**:
+   - Vérifier la configuration dans `electron-builder.json` pour s'assurer qu'elle est compatible avec la nouvelle version.
+   - Consulter les [notes de version d'electron-builder](https://github.com/electron-userland/electron-builder/releases) pour des changements spécifiques.
+
+3. **Problèmes avec Node.js ou les dépendances**:
+   - Electron 25 utilise Node.js 18, ce qui pourrait nécessiter des mises à jour de certaines dépendances.
+   - Essayer de mettre à jour d'autres dépendances si nécessaire.
