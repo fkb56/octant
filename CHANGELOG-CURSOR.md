@@ -627,20 +627,117 @@ Nous avons effectué les modifications suivantes:
 
 Ces modifications permettent de construire correctement l'application Electron sur différentes plateformes en utilisant Bun au lieu de Yarn, en évitant les erreurs liées au chemin d'Electron.
 
+## Correction des problèmes OpenSSL dans les tests Karma et les builds
+
+Pour résoudre l'erreur avec les tests Karma:
+
+```
+error:0308010C:digital envelope routines::unsupported
+```
+
+Nous avons effectué les modifications suivantes:
+
+1. **Ajout de la variable d'environnement NODE_OPTIONS dans les étapes concernées**:
+   
+   ```yaml
+   - name: run_karma
+     env:
+       NODE_OPTIONS: --openssl-legacy-provider
+     run: |
+       go run build.go web-test
+   ```
+   
+   Cette modification a été ajoutée à:
+   - L'étape `run_karma` dans le job `node_unit_tests`
+   - L'étape `Build web assets` dans le job `bundle_assets`
+   - Les étapes de build Electron dans le job `bundle_assets`
+
+2. **Remplacement de l'action Electron Builder dans le workflow preflight-checks**:
+   
+   Comme dans le workflow electron.yaml, nous avons remplacé l'action `samuelmeuli/action-electron-builder` par des étapes personnalisées spécifiques à chaque plateforme:
+   
+   ```yaml
+   - name: Build Electron (macOS)
+     if: matrix.platform == 'macos-latest' && startsWith(github.ref, 'refs/tags/v')
+     env:
+       NODE_OPTIONS: --openssl-legacy-provider
+     run: |
+       cd web
+       bun run build-electron
+       bun electron-builder --mac -p never
+   ```
+
+3. **Amélioration de la gestion des artefacts Electron**:
+   
+   Les artefacts sont maintenant téléchargés par plateforme et placés dans des dossiers séparés:
+   
+   ```yaml
+   - uses: actions/download-artifact@v4
+     with:
+       name: electron-artifacts-ubuntu-latest
+       path: web/release/linux
+   ```
+   
+   La recherche des artefacts pour le fichier de checksums a également été mise à jour pour prendre en compte cette structure:
+   
+   ```yaml
+   for asset in ./web/release/**/Octant*; do
+   ```
+
+Ces modifications garantissent que les tests et les builds fonctionnent correctement avec Node.js dans l'environnement GitHub Actions, en contournant les problèmes de compatibilité OpenSSL dans les versions récentes de Node.js.
+
+## Correction des problèmes de build Electron
+
 # Journal des modifications effectuées
 
-## Modifications du [date d'aujourd'hui]
+## Modifications du 10 Août 2023
 
 ### Fichiers modifiés
-- `.github/workflows/electron.yaml` - Modifications du workflow Electron
-- `web/package.json` - Mise à jour des dépendances
-- `web/bun.lockb` - Mise à jour du fichier de verrouillage des dépendances
-
-### Nouveaux fichiers
-- `web/electron/application-menu.js.map` - Fichier de mapping pour le menu de l'application
-- `web/electron/paths.js.map` - Fichier de mapping pour les chemins
-- `web/electron/store.js.map` - Fichier de mapping pour le stockage
-- `web/electron/tray-menu.js.map` - Fichier de mapping pour le menu de la barre d'état
+- `pkg/plugin/api/api.go` - Modification de la fonction Start pour utiliser GetGRPCServerOptions() au lieu de définir manuellement les options du serveur gRPC
+- `pkg/plugin/api/server.go` - Ajout de la fonction GetGRPCServerOptions pour centraliser les options du serveur gRPC avec des limites de taille de message appropriées
+- `pkg/plugin/server.go` - Modification de la fonction CustomGRPCServer pour utiliser la fonction GetGRPCServerOptions
 
 ### Résumé des changements
-Les modifications concernent principalement les configurations Electron et les mises à jour des dépendances. Les fichiers .map sont des fichiers générés automatiquement pour faciliter le débogage.
+Les modifications concernent principalement la configuration des limites de taille de message gRPC pour les plugins externes. Ces changements permettent d'augmenter la taille maximale des messages reçus par le serveur gRPC, ce qui est particulièrement important pour les plugins comme Helm qui peuvent générer de grands volumes de données.
+
+Les limites de taille sont maintenant définies de manière centralisée dans la fonction `GetGRPCServerOptions()` du fichier `pkg/plugin/api/server.go`, qui est utilisée par les différents serveurs gRPC du projet.
+
+### Configuration
+La taille maximale des messages est configurable via l'option `server-max-recv-msg-size`. Si cette option n'est pas spécifiée, une valeur par défaut de 100MB est utilisée.
+
+## Changelog
+
+### Modifications du 2023-11-14
+
+#### Fichiers modifiés
+- `pkg/plugin/server.go` - Configuration des limites de taille des messages gRPC pour les plugins externes (client)
+- `pkg/plugin/api/server.go` - Configuration des limites de taille des messages gRPC pour l'API (serveur)
+
+#### Résumé des changements
+Les modifications concernent la configuration des limites de taille des messages gRPC pour permettre aux plugins externes (comme Helm) de fonctionner correctement avec des messages de grande taille.
+
+1. **Côté client (CustomGRPCServer)**:
+   - Situé dans `pkg/plugin/server.go`
+   - Utilise `viper.GetInt("client-max-recv-msg-size")` pour récupérer la taille maximale des messages
+   - Configure à la fois `MaxRecvMsgSize` et `MaxSendMsgSize` avec cette valeur
+
+2. **Côté serveur (GetGRPCServerOptions)**:
+   - Situé dans `pkg/plugin/api/server.go`
+   - Utilise `viper.GetInt("server-max-recv-msg-size")` pour récupérer la taille maximale des messages
+   - Si non spécifié, définit la taille par défaut à 100MB (100 * 1024 * 1024)
+   - Configure à la fois `MaxRecvMsgSize` et `MaxSendMsgSize` avec cette valeur
+
+Ces modifications permettent de traiter les messages volumineux générés par certains plugins comme Helm, évitant ainsi les erreurs de type "message too large".
+
+### Solution pour configurer les limites
+Pour augmenter les limites de taille des messages gRPC, vous pouvez configurer les variables suivantes:
+
+```bash
+# Pour le côté client (plugins)
+export OCTANT_CLIENT_MAX_RECV_MSG_SIZE=104857600 # 100MB
+
+# Pour le côté serveur (API)
+export OCTANT_SERVER_MAX_RECV_MSG_SIZE=104857600 # 100MB
+```
+
+Ou bien ajouter ces configurations dans un fichier de configuration Octant.
