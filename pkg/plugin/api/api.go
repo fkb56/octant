@@ -9,8 +9,6 @@ import (
 	"context"
 	"net"
 
-	"github.com/spf13/viper"
-
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
@@ -57,10 +55,7 @@ func (a *grpcAPI) Start(ctx context.Context) error {
 		service: a.Service,
 	}
 
-	s := grpc.NewServer(
-		grpc.MaxRecvMsgSize(viper.GetInt("client-max-recv-msg-size")),
-		grpc.MaxSendMsgSize(viper.GetInt("client-max-recv-msg-size")),
-	)
+	s := grpc.NewServer(GetGRPCServerOptions()...)
 
 	proto.RegisterDashboardServer(s, dashboardServer)
 
