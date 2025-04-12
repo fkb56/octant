@@ -159,4 +159,73 @@ Pour éviter d'avoir à définir la variable NODE_OPTIONS à chaque démarrage d
 echo 'export NODE_OPTIONS=--openssl-legacy-provider' >> ~/.zshrc
 ```
 
-Maintenant, la configuration sera automatiquement chargée à chaque ouverture d'un nouveau terminal. 
+Maintenant, la configuration sera automatiquement chargée à chaque ouverture d'un nouveau terminal.
+
+## Correction des erreurs de compilation TypeScript
+
+Après le lancement de l'application, nous avons rencontré des erreurs de compilation TypeScript liées à des incompatibilités entre les types et la version de TypeScript utilisée dans le projet:
+
+### Types d'erreurs rencontrées
+
+1. Erreurs dans les types de Lodash:
+   ```
+   Error: node_modules/@types/lodash/common/common.d.ts:262:65 - error TS1005: '?' expected.
+   262     type StringToNumber<T> = T extends `${infer N extends number}` ? N : never;
+   ```
+
+2. Erreurs dans les composants Cytoscape:
+   ```
+   Error: src/app/modules/shared/components/presentation/cytoscape/cytoscape.component.ts:18:51 - error TS2305: Module '"cytoscape"' has no exported member 'Stylesheet'.
+   ```
+
+3. Erreurs d'incompatibilité de types dans RxJS:
+   ```
+   Error: src/app/modules/shared/services/navigation/navigation.service.ts:75:13 - error TS2345: Argument of type 'MonoTypeOperatorFunction<Event_2>' is not assignable to parameter of type 'OperatorFunction<Event_2, unknown>'.
+   ```
+
+### Solutions à appliquer
+
+1. **Corriger les définitions de types de @types/lodash**
+   
+   Le problème est lié à une incompatibilité entre la version de TypeScript utilisée dans le projet et les définitions de types dans @types/lodash. Nous devons installer une version compatible de @types/lodash:
+
+   ```bash
+   cd web
+   bun add -d @types/lodash@4.14.191
+   ```
+
+2. **Corriger les problèmes de Cytoscape**
+   
+   Pour l'erreur concernant 'Stylesheet' dans Cytoscape, nous devons modifier les fichiers concernés pour utiliser le type CytoscapeOptions au lieu de Stylesheet:
+
+   ```bash
+   cd web
+   # Éditer les fichiers concernés
+   # src/app/modules/shared/components/presentation/cytoscape/cytoscape.component.ts
+   # src/app/modules/shared/components/presentation/cytoscape2/cytoscape2.component.ts
+   # src/app/modules/shared/components/presentation/resource-viewer/octant.style.ts
+   # src/app/modules/shared/components/presentation/resource-viewer/resource-viewer.component.ts
+   ```
+
+3. **Installer une version antérieure de TypeScript compatible**
+   
+   Pour résoudre toutes ces erreurs, nous pouvons également installer une version de TypeScript spécifique compatible avec les types utilisés:
+
+   ```bash
+   cd web
+   bun add -d typescript@4.3.5
+   ```
+
+### Redémarrage de l'application
+
+Après avoir appliqué ces corrections, redémarrez l'application:
+
+```bash
+export NODE_OPTIONS=--openssl-legacy-provider && \
+lsof -i :7777 -t | xargs kill -9 2>/dev/null || true && \
+lsof -i :4200 -t | xargs kill -9 2>/dev/null || true && \
+cd web && bun install && cd .. && \
+go run build.go serve
+```
+
+Ces modifications devraient résoudre les erreurs de compilation TypeScript et permettre à l'application de fonctionner correctement. 

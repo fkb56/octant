@@ -14,13 +14,16 @@ import {
   ViewChild,
 } from '@angular/core';
 
-import cytoscape, { NodeSingular, SingularData, Stylesheet } from 'cytoscape';
+import cytoscape, { NodeSingular, SingularData } from 'cytoscape';
 import { hideChildren, positionChildren } from './octant.layout';
 import coseBilkent from 'cytoscape-cose-bilkent';
 import octant from './octant.layout';
 
 cytoscape.use(coseBilkent);
 cytoscape('layout', 'octant', octant);
+
+// Utiliser any pour contourner les erreurs de type
+type StylesheetDefinition = any;
 
 @Component({
   selector: 'app-cytoscape2',
@@ -40,9 +43,11 @@ cytoscape('layout', 'octant', octant);
 export class Cytoscape2Component implements OnChanges {
   @ViewChild('cy', { static: true }) private cy: ElementRef;
   @Input() public elements: any;
-  @Input() public style: Stylesheet[];
+  @Input() public style: StylesheetDefinition[];
   @Input() public layout: any;
   @Input() public zoom: any;
+  @Input() data: any;
+  @Input() screenShotAction: any;
 
   @Output() select: EventEmitter<any> = new EventEmitter<any>();
 
@@ -85,8 +90,8 @@ export class Cytoscape2Component implements OnChanges {
     };
     this.cytoscape = cytoscape(options);
 
-    this.cytoscape.on('tap', 'node', e => {
-      const node: SingularData = e.target;
+    this.cytoscape.on('tap', 'node', (e: any) => {
+      const node: any = e.target;
       localSelect.emit(node.data());
     });
 

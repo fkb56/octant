@@ -122,7 +122,7 @@ export class PreferencesComponent implements OnChanges {
     this.form = this.fb.group(this.controls);
 
     this.form.valueChanges
-      .pipe(startWith(this.form.getRawValue()))
+      .pipe(startWith(this.form.getRawValue()) as any)
       .subscribe((update: StringDict) => {
         this.onValueChanged(update);
       });

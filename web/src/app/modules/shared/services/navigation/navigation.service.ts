@@ -72,7 +72,7 @@ export class NavigationService {
     });
 
     router.events
-      .pipe(filter(e => e instanceof NavigationEnd))
+      .pipe(filter(e => e instanceof NavigationEnd) as any)
       .subscribe((event: RouterEvent) => {
         this.loadingService.requestComplete.next(false);
         this.activeUrl.next(event.url);
