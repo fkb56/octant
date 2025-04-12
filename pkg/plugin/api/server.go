@@ -235,8 +235,8 @@ type grpcServer struct {
 func GetGRPCServerOptions() []grpc.ServerOption {
 	maxMsgSize := viper.GetInt("server-max-recv-msg-size")
 	if maxMsgSize <= 0 {
-		// Default to 100MB if not specified
-		maxMsgSize = 100 * 1024 * 1024
+		// Default to 200MB if not specified
+		maxMsgSize = 200 * 1024 * 1024
 	}
 
 	return []grpc.ServerOption{
