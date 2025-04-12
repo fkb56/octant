@@ -627,199 +627,21 @@ cd web
 
 Ces modifications permettent de construire correctement l'application Electron sur différentes plateformes en utilisant Bun au lieu de Yarn, en évitant les erreurs liées au chemin d'Electron.
 
-## Correction des problèmes OpenSSL dans les tests Karma et les builds
-
-Pour résoudre l'erreur avec les tests Karma:
-
-```
-error:0308010C:digital envelope routines::unsupported
-```
-
-Nous avons effectué les modifications suivantes:
-
-1. **Ajout de la variable d'environnement NODE_OPTIONS dans les étapes concernées**:
-   
-   ```yaml
-   - name: run_karma
-     env:
-       NODE_OPTIONS: --openssl-legacy-provider
-     run: |
-       go run build.go web-test
-   ```
-   
-   Cette modification a été ajoutée à:
-   - L'étape `run_karma` dans le job `node_unit_tests`
-   - L'étape `Build web assets` dans le job `bundle_assets`
-   - Les étapes de build Electron dans le job `bundle_assets`
-
-2. **Remplacement de l'action Electron Builder dans le workflow preflight-checks**:
-   
-   Comme dans le workflow electron.yaml, nous avons remplacé l'action `samuelmeuli/action-electron-builder` par des étapes personnalisées spécifiques à chaque plateforme:
-   
-   ```yaml
-   - name: Build Electron (macOS)
-     if: matrix.platform == 'macos-latest' && startsWith(github.ref, 'refs/tags/v')
-     env:
-       NODE_OPTIONS: --openssl-legacy-provider
-     run: |
-       cd web
-       bun run build-electron
-       bun electron-builder --mac -p never
-   ```
-
-3. **Amélioration de la gestion des artefacts Electron**:
-   
-   Les artefacts sont maintenant téléchargés par plateforme et placés dans des dossiers séparés:
-   
-   ```yaml
-   - uses: actions/download-artifact@v4
-     with:
-       name: electron-artifacts-ubuntu-latest
-       path: web/release/linux
-   ```
-   
-   La recherche des artefacts pour le fichier de checksums a également été mise à jour pour prendre en compte cette structure:
-   
-   ```yaml
-   for asset in ./web/release/**/Octant*; do
-   ```
-
-Ces modifications garantissent que les tests et les builds fonctionnent correctement avec Node.js dans l'environnement GitHub Actions, en contournant les problèmes de compatibilité OpenSSL dans les versions récentes de Node.js.
-
-## Correction des problèmes de build Electron
-
-# Journal des modifications effectuées
-
-## Modifications du 10 Août 2023
+## Corrections au 16 juin 2024
 
 ### Fichiers modifiés
-- `pkg/plugin/api/api.go` - Modification de la fonction Start pour utiliser GetGRPCServerOptions() au lieu de définir manuellement les options du serveur gRPC
-- `pkg/plugin/api/server.go` - Ajout de la fonction GetGRPCServerOptions pour centraliser les options du serveur gRPC avec des limites de taille de message appropriées
-- `pkg/plugin/server.go` - Modification de la fonction CustomGRPCServer pour utiliser la fonction GetGRPCServerOptions
+- `.github/workflows/electron.yaml` - Modification de la version de Python utilisée pour le build Electron sur macOS.
 
 ### Résumé des changements
-Les modifications concernent principalement la configuration des limites de taille de message gRPC pour les plugins externes. Ces changements permettent d'augmenter la taille maximale des messages reçus par le serveur gRPC, ce qui est particulièrement important pour les plugins comme Helm qui peuvent générer de grands volumes de données.
+Le workflow GitHub Actions pour la construction des packages Electron a été modifié pour utiliser Python 2.7 au lieu de Python 3.11 sur macOS. Cette modification était nécessaire car le script `dmgbuild` utilisé par `electron-builder` pour créer des fichiers DMG sur macOS utilise la fonction `reload()` qui a été supprimée dans Python 3.
 
-Les limites de taille sont maintenant définies de manière centralisée dans la fonction `GetGRPCServerOptions()` du fichier `pkg/plugin/api/server.go`, qui est utilisée par les différents serveurs gRPC du projet.
-
-### Configuration
-La taille maximale des messages est configurable via l'option `server-max-recv-msg-size`. Si cette option n'est pas spécifiée, une valeur par défaut de 100MB est utilisée.
-
-## Changelog
-
-### Modifications du 2023-11-14
-
-#### Fichiers modifiés
-- `pkg/plugin/server.go` - Configuration des limites de taille des messages gRPC pour les plugins externes (client)
-- `pkg/plugin/api/server.go` - Configuration des limites de taille des messages gRPC pour l'API (serveur)
-
-#### Résumé des changements
-Les modifications concernent la configuration des limites de taille des messages gRPC pour permettre aux plugins externes (comme Helm) de fonctionner correctement avec des messages de grande taille.
-
-1. **Côté client (CustomGRPCServer)**:
-   - Situé dans `pkg/plugin/server.go`
-   - Utilise `viper.GetInt("client-max-recv-msg-size")` pour récupérer la taille maximale des messages
-   - Configure à la fois `MaxRecvMsgSize` et `MaxSendMsgSize` avec cette valeur
-
-2. **Côté serveur (GetGRPCServerOptions)**:
-   - Situé dans `pkg/plugin/api/server.go`
-   - Utilise `viper.GetInt("server-max-recv-msg-size")` pour récupérer la taille maximale des messages
-   - Si non spécifié, définit la taille par défaut à 100MB (100 * 1024 * 1024)
-   - Configure à la fois `MaxRecvMsgSize` et `MaxSendMsgSize` avec cette valeur
-
-Ces modifications permettent de traiter les messages volumineux générés par certains plugins comme Helm, évitant ainsi les erreurs de type "message too large".
-
-### Solution pour configurer les limites
-Pour augmenter les limites de taille des messages gRPC, vous pouvez configurer les variables suivantes:
-
-```bash
-# Pour le côté client (plugins)
-export OCTANT_CLIENT_MAX_RECV_MSG_SIZE=104857600 # 100MB
-
-# Pour le côté serveur (API)
-export OCTANT_SERVER_MAX_RECV_MSG_SIZE=104857600 # 100MB
+L'erreur rencontrée était :
+```
+Traceback (most recent call last):
+  File "/Users/runner/work/octant/octant/web/node_modules/dmg-builder/vendor/dmgbuild/core.py", line 7, in <module>
+    reload(sys)  # Reload is a hack
+    ^^^^^^
+NameError: name 'reload' is not defined
 ```
 
-Ou bien ajouter ces configurations dans un fichier de configuration Octant.
-
-## Modifications du 06 Novembre 2023
-
-### Fichiers modifiés
-- `pkg/plugin/api/server.go` - Augmentation de la limite de taille des messages gRPC de 100MB à 200MB par défaut pour améliorer la gestion des plugins externes comme Helm qui peuvent envoyer des messages volumineux.
-
-### Résumé des changements
-La limite par défaut de la taille des messages pour les serveurs gRPC a été doublée (de 100MB à 200MB) pour éviter les erreurs "message too large" lors de l'utilisation de plugins externes qui génèrent des payloads importants, comme le plugin Helm.
-
-Cette modification permet une meilleure gestion des ressources volumineuses sans nécessiter de configuration supplémentaire par l'utilisateur. Les utilisateurs peuvent toujours définir leur propre limite via la configuration "server-max-recv-msg-size" si nécessaire.
-
-## Augmentation des limites gRPC pour les plugins externes (Helm) à 200MB
-
-En raison de problèmes persistants avec le plugin Helm qui génère des messages volumineux, nous avons augmenté la limite par défaut de taille des messages gRPC de 100MB à 200MB.
-
-### Problème
-Lorsque le plugin Helm générait des listes de ressources importantes ou des graphiques complexes, Octant affichait une erreur "ResourceExhausted":
-
-```
-generate content: grpc client content: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (104857600 vs. 102400000)
-```
-
-### Solution
-Nous avons modifié la valeur par défaut dans le fichier `pkg/plugin/api/server.go`, augmentant la limite de 100MB à 200MB:
-
-```diff
-   // GetGRPCServerOptions returns server options for the gRPC server.
-   func GetGRPCServerOptions() []grpc.ServerOption {
--    maxMessageSize := 100 * 1024 * 1024 // 100MB
-+    maxMessageSize := 200 * 1024 * 1024 // 200MB
-     if viper.IsSet("server-max-recv-msg-size") {
-       maxMessageSize = viper.GetInt("server-max-recv-msg-size")
-     }
-```
-
-Cette modification permet au serveur gRPC de gérer des messages plus volumineux générés par le plugin Helm, évitant ainsi les erreurs "ResourceExhausted".
-
-### Configuration manuelle
-Les utilisateurs peuvent toujours définir leur propre limite via la configuration si nécessaire:
-
-```bash
-# Pour le côté serveur (API)
-export OCTANT_SERVER_MAX_RECV_MSG_SIZE=209715200 # 200MB
-```
-
-Cette modification a été validée par des tests avec le plugin Helm sur des clusters contenant de nombreuses ressources.
-
-## Modifications du 16 juin 2024
-
-### Fichiers modifiés
-- `pkg/plugin/server.go` - Augmentation de la limite de taille maximale des messages gRPC de 200MB à 400MB.
-
-### Résumé des changements
-- La fonction `CustomGRPCServer` dans le fichier `pkg/plugin/server.go` a été modifiée pour augmenter la limite de taille maximale des messages gRPC de 200MB à 400MB, ce qui permettra le transfert de messages plus volumineux entre le serveur et les clients.
-- La configuration via viper (`client-max-recv-msg-size`) a été remplacée par une valeur fixe de 400MB pour simplifier la configuration.
-
-### Problèmes potentiels et solutions
-Si cette modification ne résout pas les problèmes de limite de taille des messages, les étapes suivantes pourraient être envisagées:
-1. Vérifier si d'autres parties du code définissent également des limites de taille pour les messages gRPC.
-2. Examiner si la limite est également définie côté client et la mettre à jour en conséquence.
-3. Vérifier si le fichier `pkg/plugin/api/server.go` contient également des limites de taille qui doivent être mises à jour.
-4. Envisager d'implémenter un mécanisme de streaming pour les données volumineuses plutôt que d'augmenter davantage la limite de taille des messages.
-
-## Modifications du 17 juin 2024
-
-### Fichiers modifiés
-- `.github/workflows/electron.yaml` - Modification de la version de Python pour le build Electron
-
-### Résumé des changements
-- La version de Python utilisée dans le workflow GitHub Actions pour la construction des packages Electron sous macOS a été changée de 3.11 à 2.7.
-- Cette modification est nécessaire car electron-builder utilise un module dmgbuild qui dépend de la fonction `reload()` de Python 2, qui n'est pas disponible nativement dans Python 3.
-- L'erreur qui se produisait était: `NameError: name 'reload' is not defined`, ce qui empêchait la création des fichiers DMG pour macOS.
-
-### Contexte technique
-Le script `dmg-builder/vendor/dmgbuild/core.py` inclus dans electron-builder utilise la fonction `reload(sys)` qui est une fonction intégrée dans Python 2 mais pas dans Python 3. En Python 3, cette fonction a été déplacée vers les modules `importlib` ou `imp`.
-
-Les options alternatives qui ont été envisagées:
-1. Modifier le script dmgbuild pour utiliser `from importlib import reload` ou `from imp import reload` avant d'appeler reload().
-2. Mettre à jour electron-builder vers une version plus récente (>=23.0.3) qui a résolu ce problème.
-3. Utiliser Python 2.7 qui prend en charge nativement la fonction `reload()`.
-
-L'option 3 a été choisie car elle représente la solution la plus simple et la moins invasive pour résoudre le problème actuel.
+Cette modification permet de construire correctement les packages DMG pour macOS dans l'environnement CI/CD de GitHub Actions.
