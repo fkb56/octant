@@ -1,13 +1,14 @@
 name: Verify generated code
-on:
-  push:
-    branches:
-    - master
-    - release-*
-  pull_request:
-    branches:
-    - master
-    - release-*
+on: [push, pull_request]
+# on:
+#   push:
+#     branches:
+#     - master
+#     - release-*
+#   pull_request:
+#     branches:
+#     - master
+#     - release-*
 jobs:
   verify_generated:
     name: Verify generated code
