@@ -398,7 +398,37 @@ Nous avons mis à jour les fichiers de workflow GitHub Actions pour utiliser Bun
    + bun add -g prettier
    ```
 
-4. **Mise à jour du message d'erreur dans `build.go`**:
+4. **Modification de `.github/workflows/nightly.yaml`**:
+   
+   Nous avons remplacé la configuration Node.js/npm par Bun dans le workflow des builds nocturnes:
+   
+   ```diff
+     steps:
+       - uses: actions/checkout@v4
+   -   - uses: actions/setup-node@v2.4.1
+   -     with:
+   -       node-version: '16'
+   -       cache: 'npm'
+   -       cache-dependency-path: 'web/package-lock.json'
+   +   - name: Setup Bun
+   +     uses: oven-sh/setup-bun@v2
+   +     with:
+   +       bun-version: latest
+   ```
+   
+   Nous avons également mis à jour les versions des actions GitHub:
+   
+   ```diff
+   - uses: actions/setup-go@v2
+   + uses: actions/setup-go@v5
+   ```
+   
+   ```diff
+   - uses: actions/checkout@v2
+   + uses: actions/checkout@v4
+   ```
+
+5. **Mise à jour du message d'erreur dans `build.go`**:
    
    Nous avons également mis à jour le message d'erreur dans la fonction `verifyNpmCache` pour refléter l'utilisation de Bun:
    
@@ -409,7 +439,7 @@ Nous avons mis à jour les fichiers de workflow GitHub Actions pour utiliser Bun
      }
    ```
 
-Ces modifications permettent d'utiliser Bun à la place de npm dans l'environnement CI/CD, offrant une meilleure cohérence avec l'environnement de développement local qui utilise également Bun.
+Ces modifications permettent d'utiliser Bun à la place de npm dans l'environnement CI/CD, offrant une meilleure cohérence avec l'environnement de développement local qui utilise également Bun. De plus, la mise à jour des versions des actions GitHub permet de bénéficier des dernières améliorations et corrections de bugs.
 
 # Journal des modifications effectuées
 
