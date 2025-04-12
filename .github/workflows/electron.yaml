@@ -20,6 +20,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.17.x
+      - name: Setup Python
+        if: matrix.os == 'macos-latest'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Install dependencies
         run: |
           cd web && bun install
@@ -33,6 +38,7 @@ jobs:
         run: |
           cd web
           export NODE_OPTIONS=--openssl-legacy-provider
+          export PYTHON_PATH=$(which python)
           bun run build-electron
           bun electron-builder --mac -p never
       - name: Build Electron (Linux)
