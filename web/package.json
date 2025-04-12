@@ -26,7 +26,7 @@
     "electron:serve": "wait-on http-get://localhost:7777 && npm run electron:serve-tsc && electron . --serve",
     "electron:serve-tsc": "npx tsc -p tsconfig.serve.json",
     "electron:local": "npx tsc main.ts && npx ng build --base-href ./ && npx electron --local .",
-    "electron:build": "PYTHON_PATH=$(which python3) npm run build-electron && npx electron-builder --config.electronDist=$(dirname $(which python3)) -p never",
+    "electron:build": "npm run build-electron && npx electron-builder -p never",
     "storybook": "start-storybook -p 6006 -s src/assets",
     "build-storybook": "node ./node_modules/@storybook/angular/bin/build.js build-storybook -c .storybook",
     "postinstall": "rimraf ./node_modules/cytoscape-node-html-label/dist/cytoscape-node-html-label.d.ts"
