@@ -75,6 +75,8 @@ jobs:
         run: |
           cd web && bun install
       - name: run_karma
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
         run: |
           go run build.go web-test
 
@@ -101,6 +103,8 @@ jobs:
         run: |
           cd web && bun install
       - name: Build web assets
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
         run: |
           go run build.go web-build
       - uses: actions/upload-artifact@v4
@@ -120,23 +124,32 @@ jobs:
         run: |
           go run build.go build
           ./build/octant version
-      - if: startsWith(github.ref, 'refs/tags/v')
-        name: Build electron binary
+      - name: Build electron binary
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GOFLAGS: -mod=vendor
         run: |
           go run build.go build-electron
-      - if: startsWith(github.ref, 'refs/tags/v')
-        name: Build electron
-        uses: samuelmeuli/action-electron-builder@v1.6.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          package_root: 'web'
-          build_script_name: 'build-electron'
+      - name: Build Electron (macOS)
+        if: matrix.platform == 'macos-latest' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+        run: |
+          cd web
+          bun run build-electron
+          bun electron-builder --mac -p never
+      - name: Build Electron (Linux)
+        if: matrix.platform == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+        run: |
+          cd web
+          bun run build-electron
+          bun electron-builder --linux -p never
       - uses: actions/upload-artifact@v4
         if: startsWith(github.ref, 'refs/tags/v')
         with:
-          name: electron-artifacts
+          name: electron-artifacts-${{ matrix.platform }}
           path: web/release/Octant*
 
   goreleaser:
@@ -172,8 +185,14 @@ jobs:
           path: dist
       - uses: actions/download-artifact@v4
         with:
-          name: electron-artifacts
-          path: web/release
+          name: electron-artifacts-ubuntu-latest
+          path: web/release/linux
+        continue-on-error: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: electron-artifacts-macos-latest
+          path: web/release/mac
+        continue-on-error: true
       - name: Create release
         # actions/upload-release-asset@v1 does not support glob
         run: |
@@ -185,7 +204,7 @@ jobs:
                 assets+=("-a" "$asset")
             fi
           done
-          for asset in ./web/release/Octant*; do
+          for asset in ./web/release/**/Octant*; do
             shasum -a 256 "$asset" | awk '{sub(/.*\//," ",$2)} 1' >> ./dist/checksums.txt
             assets+=("-a" "$asset")
           done
