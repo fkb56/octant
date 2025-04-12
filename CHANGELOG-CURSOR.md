@@ -581,62 +581,12 @@ Nous avons effectué les modifications suivantes:
 
 Ces modifications garantissent la compatibilité avec Bun et évitent les erreurs lors de la vérification du cache et de l'exécution des tests.
 
-## Correction des problèmes de build Electron
+## Correction des problèmes de build macOS avec Python 3
 
-Pour résoudre l'erreur lors du build Electron:
+Pour résoudre l'erreur avec `dmg-builder` lors de la construction des packages macOS:
 
 ```
-⨯ corrupted Electron dist  failedTask=build stackTrace=Error: corrupted Electron dist
-```
-
-Nous avons effectué les modifications suivantes:
-
-1. **Suppression de `electronDist` dans `web/electron-builder.json`**:
-   
-   ```diff
-   - "electronDist": "/usr/local/bin"
-   ```
-   
-   Le paramètre `electronDist` forçait l'utilisation d'un chemin spécifique pour Electron, ce qui causait des problèmes dans l'environnement GitHub Actions.
-
-2. **Modification du workflow `electron.yaml` pour construire Electron directement**:
-   
-   Nous avons remplacé l'action `samuelmeuli/action-electron-builder` qui utilisait Yarn par une approche personnalisée avec Bun:
-   
-   ```yaml
-   - name: Build Electron (macOS)
-     if: matrix.os == 'macos-latest'
-     run: |
-cd web
-       export NODE_OPTIONS=--openssl-legacy-provider
-       bun run build-electron
-       bun electron-builder --mac -p never
-   ```
-   
-   Des étapes similaires ont été ajoutées pour Linux et Windows, chacune avec les options spécifiques à la plateforme.
-
-3. **Ajout d'une étape d'installation des dépendances**:
-   
-   ```yaml
-   - name: Install dependencies
-     run: |
-       cd web && bun install
-   ```
-   
-   Cette étape garantit que toutes les dépendances sont correctement installées avant de construire l'application Electron.
-
-Ces modifications permettent de construire correctement l'application Electron sur différentes plateformes en utilisant Bun au lieu de Yarn, en évitant les erreurs liées au chemin d'Electron.
-
-## Corrections au 16 juin 2024
-
-### Fichiers modifiés
-- `.github/workflows/electron.yaml` - Modification de la version de Python utilisée pour le build Electron sur macOS.
-
-### Résumé des changements
-Le workflow GitHub Actions pour la construction des packages Electron a été modifié pour utiliser Python 2.7 au lieu de Python 3.11 sur macOS. Cette modification était nécessaire car le script `dmgbuild` utilisé par `electron-builder` pour créer des fichiers DMG sur macOS utilise la fonction `reload()` qui a été supprimée dans Python 3.
-
-L'erreur rencontrée était :
-```
+Error: Exit code: 1. Command failed: /Users/runner/hostedtoolcache/Python/3.11.9/arm64/bin/python /Users/runner/work/octant/octant/web/node_modules/dmg-builder/vendor/dmgbuild/core.py
 Traceback (most recent call last):
   File "/Users/runner/work/octant/octant/web/node_modules/dmg-builder/vendor/dmgbuild/core.py", line 7, in <module>
     reload(sys)  # Reload is a hack
@@ -644,4 +594,41 @@ Traceback (most recent call last):
 NameError: name 'reload' is not defined
 ```
 
-Cette modification permet de construire correctement les packages DMG pour macOS dans l'environnement CI/CD de GitHub Actions.
+Nous avons effectué les modifications suivantes dans le workflow GitHub Actions `electron.yaml`:
+
+1. **Retour à Python 2.7 pour macOS**
+   
+   ```yaml
+   - name: Setup Python for macOS
+     if: matrix.os == 'macos-latest'
+     uses: actions/setup-python@v5
+     with:
+       python-version: '2.7'
+   ```
+   
+   Le problème est que la fonction `reload(sys)` est dépréciée dans Python 3 et a été supprimée. Cependant, le script `dmg-builder` utilise encore cette fonction, ce qui provoque une erreur lors de l'exécution avec Python 3.
+
+2. **Spécification des versions exactes d'Electron et electron-builder**
+   
+   ```yaml
+   - name: Pin electron-builder dmg-builder for Python 3 compatibility
+     if: matrix.os == 'macos-latest'
+     run: |
+       cd web
+       sed -i '' 's/"electron": "^13.2.3"/"electron": "13.6.9"/g' package.json
+       sed -i '' 's/"electron-builder": "^22.12.0"/"electron-builder": "23.0.2"/g' package.json
+   ```
+   
+   Cette approche garantit l'utilisation de versions spécifiques qui fonctionnent bien ensemble et avec l'environnement de construction.
+
+### Alternatives possibles
+
+Si le passage à Python 2.7 n'est pas souhaitable à long terme, les options suivantes peuvent être envisagées:
+
+1. **Patch du script problématique**: Modifier le script `core.py` dans `dmg-builder` pour utiliser `importlib.reload` au lieu de `reload` directement.
+
+2. **Utiliser une version plus récente d'electron-builder**: Les versions récentes d'electron-builder ont peut-être résolu ce problème de compatibilité Python 3.
+
+3. **Remplacer dmg-builder**: Utiliser un autre outil pour la création de DMG qui soit compatible avec Python 3.
+
+Cette modification temporaire avec Python 2.7 permet de continuer les builds macOS en attendant une solution plus pérenne.

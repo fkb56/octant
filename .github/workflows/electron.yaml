@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.17.x
-      - name: Setup Python
+      - name: Setup Python for macOS
         if: matrix.os == 'macos-latest'
         uses: actions/setup-python@v5
         with:
@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: |
           cd web && bun install
+      - name: Pin electron-builder dmg-builder for Python 3 compatibility
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd web
+          sed -i '' 's/"electron": "^13.2.3"/"electron": "13.6.9"/g' package.json
+          sed -i '' 's/"electron-builder": "^22.12.0"/"electron-builder": "23.0.2"/g' package.json
       - name: Build binary
         env:
           GOFLAGS: -mod=vendor
