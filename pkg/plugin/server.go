@@ -7,7 +7,6 @@ package plugin
 
 import (
 	"github.com/hashicorp/go-plugin"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
 
@@ -23,11 +22,8 @@ var (
 
 // CustomGRPCServer creates a gRPC server with increased message size limits
 func CustomGRPCServer(opts []grpc.ServerOption) *grpc.Server {
-	maxMsgSize := viper.GetInt("client-max-recv-msg-size")
-	opts = append(opts,
-		grpc.MaxRecvMsgSize(maxMsgSize),
-		grpc.MaxSendMsgSize(maxMsgSize),
-	)
+	opts = append(opts, grpc.MaxRecvMsgSize(400*1024*1024))
+	opts = append(opts, grpc.MaxSendMsgSize(400*1024*1024))
 	return grpc.NewServer(opts...)
 }
 
