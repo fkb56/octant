@@ -373,7 +373,32 @@ Nous avons mis à jour les fichiers de workflow GitHub Actions pour utiliser Bun
    +       bun-version: latest
    ```
 
-3. **Mise à jour du message d'erreur dans `build.go`**:
+3. **Modification de `.github/workflows/preflight-checks.yaml`**:
+   
+   Nous avons remplacé toutes les configurations Node.js/npm par Bun dans le workflow de vérification préliminaire:
+   
+   ```diff
+     steps:
+       - uses: actions/checkout@v2
+   -   - uses: actions/setup-node@v2.4.1
+   -     with:
+   -       node-version: '16'
+   -       cache: 'npm'
+   -       cache-dependency-path: 'web/package-lock.json'
+   +   - name: Setup Bun
+   +     uses: oven-sh/setup-bun@v1
+   +     with:
+   +       bun-version: latest
+   ```
+   
+   Nous avons également mis à jour l'installation de prettier pour utiliser Bun au lieu de npm:
+   
+   ```diff
+   - npm i -g prettier
+   + bun add -g prettier
+   ```
+
+4. **Mise à jour du message d'erreur dans `build.go`**:
    
    Nous avons également mis à jour le message d'erreur dans la fonction `verifyNpmCache` pour refléter l'utilisation de Bun:
    
