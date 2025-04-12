@@ -14,9 +14,9 @@
   "main": "main.js",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "node ./node_modules/@angular/cli/bin/ng build --configuration production --output-hashing=all",
-    "build-electron": "npx tsc main.ts && npm run build -- --base-href ./",
+    "start": "NODE_OPTIONS=--openssl-legacy-provider ng serve",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider node ./node_modules/@angular/cli/bin/ng build --configuration production --output-hashing=all",
+    "build-electron": "NODE_OPTIONS=--openssl-legacy-provider npx tsc main.ts && npm run build -- --base-href ./",
     "test": "ng test --watch=false --browsers=ElectronDebug",
     "test:headless": "ng test --watch=false --browsers=ChromeHeadless --source-map=false",
     "lint": "prettier -c 'src/**/*.ts'",
@@ -29,7 +29,6 @@
     "electron:build": "npm run build-electron && npx electron-builder -p never",
     "storybook": "start-storybook -p 6006 -s src/assets",
     "build-storybook": "node ./node_modules/@storybook/angular/bin/build.js build-storybook -c .storybook",
-    "preinstall": "npx npm-force-resolutions",
     "postinstall": "rimraf ./node_modules/cytoscape-node-html-label/dist/cytoscape-node-html-label.d.ts"
   },
   "prettier": {
@@ -115,7 +114,7 @@
     "@types/graphlib-dot": "^0.6.1",
     "@types/jasmine": "^3.9.1",
     "@types/jasminewd2": "^2.0.10",
-    "@types/lodash": "^4.14.172",
+    "@types/lodash": "4.14.191",
     "@types/node": "^16.9.4",
     "@types/ws": "^7.4.4",
     "babel-loader": "^8.1.0",
@@ -133,7 +132,6 @@
     "karma-spec-reporter": "0.0.32",
     "marked": "^2.0.1",
     "mini-css-extract-plugin": "^2.2.0",
-    "npm-force-resolutions": "0.0.10",
     "prettier": "^2.3.2",
     "protractor": "~7.0.0",
     "react": "^17.0.2",
@@ -146,7 +144,7 @@
     "tslint": "~6.1.3",
     "tslint-config-prettier": "^1.18.0",
     "tslint-plugin-prettier": "^2.3.0",
-    "typescript": "~4.3.5",
+    "typescript": "4.3.5",
     "wait-on": "^5.2.0"
   },
   "resolutions": {

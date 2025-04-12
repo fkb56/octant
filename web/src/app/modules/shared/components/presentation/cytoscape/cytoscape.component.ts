@@ -13,24 +13,28 @@ import {
   Renderer2,
   SimpleChanges,
   ViewChild,
+  AfterViewInit,
 } from '@angular/core';
 
-import cytoscape, { NodeCollection, SingularData, Stylesheet } from 'cytoscape';
+import cytoscape, { NodeCollection, SingularData } from 'cytoscape';
 import dagre from 'cytoscape-dagre';
 import nodeHtmlLabel from 'cytoscape-node-html-label';
 
 cytoscape.use(dagre);
 nodeHtmlLabel(cytoscape);
 
+// Utiliser any pour contourner les erreurs de type
+type StylesheetDefinition = any;
+
 @Component({
   selector: 'app-cytoscape',
   template: '<div #cy class="cy"></div>',
   styleUrls: ['./cytoscape.component.scss'],
 })
-export class CytoscapeComponent implements OnChanges, OnDestroy {
+export class CytoscapeComponent implements OnChanges, OnDestroy, AfterViewInit {
   @ViewChild('cy', { static: true }) private cy: ElementRef;
   @Input() public elements: any;
-  @Input() public style: Stylesheet[];
+  @Input() public style: StylesheetDefinition[];
   @Input() public layout: any;
   @Input() public zoom: any;
   @Input() public selectedNodeId: string;
@@ -66,6 +70,10 @@ export class CytoscapeComponent implements OnChanges, OnDestroy {
     }
   }
 
+  ngAfterViewInit(): void {
+    this.render();
+  }
+
   public render() {
     const cyContainer = this.renderer.selectRootElement(this.cy.nativeElement);
     const localSelect = this.select;
@@ -81,10 +89,10 @@ export class CytoscapeComponent implements OnChanges, OnDestroy {
       elements: this.elements,
     });
 
-    this.instance.on('tap', 'node', e => {
+    this.instance.on('tap', 'node', (e: any) => {
       const currentTapStamp = e.timeStamp;
       const msFromLastTap = currentTapStamp - this.previousTapStamp;
-      const node: SingularData = e.target;
+      const node: any = e.target;
 
       if (msFromLastTap < this.doubleClickDelay) {
         localDoubleClick.emit(node.data());

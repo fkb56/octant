@@ -24,7 +24,7 @@ import (
 //go:generate mockgen -destination=./fake/mock_dashboard_client.go -package=fake github.com/vmware-tanzu/octant/pkg/plugin/api/proto DashboardClient
 //go:generate mockgen -destination=./fake/mock_dashboard_connection.go -package=fake github.com/vmware-tanzu/octant/pkg/plugin/api DashboardConnection
 
-const MaxMessageSize int = 1024 * 1024 * 16
+const MaxMessageSize int = 1024 * 1024 * 32
 
 type DashboardConnection interface {
 	Close() error
@@ -68,7 +68,10 @@ func NewClient(address string, options ...ClientOption) (*Client, error) {
 		// NOTE: is it possible to make this secure? Is it even important?
 		conn, err := grpc.Dial(address,
 			grpc.WithInsecure(),
-			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(viper.GetInt("client-max-recv-msg-size"))),
+			grpc.WithDefaultCallOptions(
+				grpc.MaxCallRecvMsgSize(viper.GetInt("client-max-recv-msg-size")),
+				grpc.MaxCallSendMsgSize(viper.GetInt("client-max-recv-msg-size")),
+			),
 		)
 		if err != nil {
 			return nil, err

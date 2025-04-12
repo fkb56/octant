@@ -29,12 +29,14 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/spf13/viper"
 	"github.com/vmware-tanzu/octant/internal/log"
 	"github.com/vmware-tanzu/octant/internal/module"
 	"github.com/vmware-tanzu/octant/internal/portforward"
 	"github.com/vmware-tanzu/octant/pkg/action"
 	"github.com/vmware-tanzu/octant/pkg/plugin/api"
 	"github.com/vmware-tanzu/octant/pkg/view/component"
+	"google.golang.org/grpc"
 )
 
 // ClientFactory is a factory for creating clients.
@@ -61,6 +63,7 @@ func (f *DefaultClientFactory) Init(ctx context.Context, cmd string) Client {
 
 	c := pluginCmd(cmd)
 
+	maxMsgSize := viper.GetInt("client-max-recv-msg-size")
 	return plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: Handshake,
 		Plugins:         pluginMap,
@@ -69,6 +72,12 @@ func (f *DefaultClientFactory) Init(ctx context.Context, cmd string) Client {
 			plugin.ProtocolGRPC,
 		},
 		Logger: loggerAdapter,
+		GRPCDialOptions: []grpc.DialOption{
+			grpc.WithDefaultCallOptions(
+				grpc.MaxCallRecvMsgSize(maxMsgSize),
+				grpc.MaxCallSendMsgSize(maxMsgSize),
+			),
+		},
 	})
 }
 
