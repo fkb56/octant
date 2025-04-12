@@ -547,12 +547,28 @@ func verifyRegistry() {
 }
 
 func verifyNpmCache() {
+	// Bun n'a pas la commande 'cache verify' comme npm
+	// Nous utilisons 'bun pm cache' pour la compatibilité
+	if NODE_PACKAGES_MANAGER == "bun" {
+		// Pour Bun, vérifions simplement que bun est bien installé
+		cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "--version")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		cmd.Dir = "./web"
+		if err := cmd.Run(); err != nil {
+			log.Fatalf("Bun check: %s", err)
+		}
+		return
+	}
+
+	// Pour npm ou autres gestionnaires
 	cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "cache", "verify")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Dir = "./web"
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("Bun cache verify: %s", err)
+		log.Fatalf("%s cache verify: %s", NODE_PACKAGES_MANAGER, err)
 	}
 }

@@ -528,6 +528,59 @@ Nous avons mis à jour les fichiers de workflow GitHub Actions pour utiliser Bun
 
 Ces modifications permettent d'utiliser Bun à la place de npm dans l'environnement CI/CD, offrant une meilleure cohérence avec l'environnement de développement local qui utilise également Bun. De plus, la mise à jour des versions des actions GitHub permet de bénéficier des dernières améliorations et corrections de bugs.
 
+## Correction des problèmes de compatibilité avec Bun
+
+Pour résoudre l'erreur dans le workflow preflight-checks.yaml:
+
+```
+error: Script not found "cache"
+2025/04/12 15:14:49 Bun cache verify: exit status 1
+```
+
+Nous avons effectué les modifications suivantes:
+
+1. **Adaptation de la fonction `verifyNpmCache` dans `build.go` pour Bun**:
+   
+   Bun n'ayant pas d'équivalent à la commande `npm cache verify`, nous avons modifié la fonction pour qu'elle soit compatible avec Bun:
+   
+   ```go
+   func verifyNpmCache() {
+       // Bun n'a pas la commande 'cache verify' comme npm
+       if NODE_PACKAGES_MANAGER == "bun" {
+           // Pour Bun, vérifions simplement que bun est bien installé
+           cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "--version")
+           cmd.Stdout = os.Stdout
+           cmd.Stderr = os.Stderr
+           cmd.Stdin = os.Stdin
+           cmd.Dir = "./web"
+           if err := cmd.Run(); err != nil {
+               log.Fatalf("Bun check: %s", err)
+           }
+           return
+       }
+
+       // Pour npm ou autres gestionnaires
+       cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "cache", "verify")
+       // ...
+   }
+   ```
+
+2. **Ajout d'étapes d'installation de dépendances explicites dans `preflight-checks.yaml`**:
+   
+   Nous avons ajouté des étapes d'installation des dépendances avant l'exécution des tests et des builds:
+   
+   ```yaml
+   - name: Install dependencies
+     run: |
+       cd web && bun install
+   ```
+   
+   Ces étapes ont été ajoutées aux jobs:
+   - `node_unit_tests`
+   - `bundle_assets`
+
+Ces modifications garantissent la compatibilité avec Bun et évitent les erreurs lors de la vérification du cache et de l'exécution des tests.
+
 # Journal des modifications effectuées
 
 ## Modifications du [date d'aujourd'hui]
