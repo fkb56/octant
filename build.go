@@ -340,7 +340,7 @@ func goFmt(update bool) {
 }
 
 func webDeps(opts ...string) {
-	args := append([]string{"install", "--frozen-lockfile"}, opts...)
+	args := append([]string{"install"}, opts...)
 	cmd := newCmd(NODE_PACKAGES_MANAGER, nil, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
