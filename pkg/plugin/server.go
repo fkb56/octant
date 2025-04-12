@@ -7,6 +7,8 @@ package plugin
 
 import (
 	"github.com/hashicorp/go-plugin"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -19,6 +21,16 @@ var (
 	}
 )
 
+// CustomGRPCServer creates a gRPC server with increased message size limits
+func CustomGRPCServer(opts []grpc.ServerOption) *grpc.Server {
+	maxMsgSize := viper.GetInt("client-max-recv-msg-size")
+	opts = append(opts,
+		grpc.MaxRecvMsgSize(maxMsgSize),
+		grpc.MaxSendMsgSize(maxMsgSize),
+	)
+	return grpc.NewServer(opts...)
+}
+
 // Serve serves a plugin.
 func Serve(service Service) {
 	plugin.Serve(&plugin.ServeConfig{
@@ -26,6 +38,6 @@ func Serve(service Service) {
 		Plugins: plugin.PluginSet{
 			Name: &ServicePlugin{Impl: service},
 		},
-		GRPCServer: plugin.DefaultGRPCServer,
+		GRPCServer: CustomGRPCServer,
 	})
 }

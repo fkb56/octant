@@ -254,3 +254,79 @@ Pour vérifier que les modifications sont effectives:
 git add pkg/plugin/api/api.go pkg/plugin/api/client.go CHANGELOG-CURSOR.md
 git commit -m "fix: augmenter les limites d'envoi et de réception des messages gRPC pour résoudre l'erreur ResourceExhausted"
 ```
+
+## Configuration gRPC pour les plugins externes
+
+Malgré les modifications précédentes pour augmenter les limites de taille des messages gRPC entre Octant et ses clients, nous avons toujours rencontré l'erreur `ResourceExhausted` lors de l'utilisation du plugin Helm:
+
+```
+generate content: grpc client content: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (19752553 vs. 16777216)
+```
+
+Le problème était que nous devions également configurer les limites de taille des messages gRPC pour les communications entre Octant et ses plugins externes, comme le plugin Helm.
+
+Nous avons apporté les modifications suivantes:
+
+1. **Configuration du client gRPC pour les plugins externes** dans le fichier `pkg/plugin/manager.go`:
+   ```diff
+     c := pluginCmd(cmd)
+   
+   + maxMsgSize := viper.GetInt("client-max-recv-msg-size")
+     return plugin.NewClient(&plugin.ClientConfig{
+       HandshakeConfig: Handshake,
+       Plugins:         pluginMap,
+       Cmd:             c,
+       AllowedProtocols: []plugin.Protocol{
+         plugin.ProtocolGRPC,
+       },
+       Logger: loggerAdapter,
+   +   GRPCDialOptions: []grpc.DialOption{
+   +     grpc.WithDefaultCallOptions(
+   +       grpc.MaxCallRecvMsgSize(maxMsgSize),
+   +       grpc.MaxCallSendMsgSize(maxMsgSize),
+   +     ),
+   +   },
+     })
+   ```
+
+2. **Configuration du serveur gRPC pour les plugins** dans le fichier `pkg/plugin/server.go`:
+   ```diff
+   + // CustomGRPCServer creates a gRPC server with increased message size limits
+   + func CustomGRPCServer(opts []grpc.ServerOption) *grpc.Server {
+   +   maxMsgSize := viper.GetInt("client-max-recv-msg-size")
+   +   opts = append(opts,
+   +     grpc.MaxRecvMsgSize(maxMsgSize),
+   +     grpc.MaxSendMsgSize(maxMsgSize),
+   +   )
+   +   return grpc.NewServer(opts...)
+   + }
+   
+     // Serve serves a plugin.
+     func Serve(service Service) {
+       plugin.Serve(&plugin.ServeConfig{
+         HandshakeConfig: Handshake,
+         Plugins: plugin.PluginSet{
+           Name: &ServicePlugin{Impl: service},
+         },
+   -     GRPCServer: plugin.DefaultGRPCServer,
+   +     GRPCServer: CustomGRPCServer,
+       })
+     }
+   ```
+
+Ces modifications permettent d'augmenter les limites de taille des messages gRPC pour les communications entre Octant et ses plugins externes, ce qui devrait résoudre définitivement le problème de `ResourceExhausted`.
+
+### Tests de la modification
+
+Pour vérifier que les modifications sont effectives:
+
+1. Redémarrez Octant: `go run build.go serve`
+2. Vérifiez que le plugin Helm fonctionne correctement
+3. Vérifiez qu'il n'y a plus d'erreur `ResourceExhausted` dans les logs
+
+### Commit des modifications
+
+```bash
+git add pkg/plugin/manager.go pkg/plugin/server.go CHANGELOG-CURSOR.md
+git commit -m "fix: configurer les limites gRPC pour les plugins externes (Helm)"
+```
