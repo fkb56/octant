@@ -553,6 +553,6 @@ func verifyNpmCache() {
 	cmd.Stdin = os.Stdin
 	cmd.Dir = "./web"
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("NPM cache verify: %s", err)
+		log.Fatalf("Bun cache verify: %s", err)
 	}
 }

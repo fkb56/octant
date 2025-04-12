@@ -331,6 +331,43 @@ git add pkg/plugin/manager.go pkg/plugin/server.go CHANGELOG-CURSOR.md
 git commit -m "fix: configurer les limites gRPC pour les plugins externes (Helm)"
 ```
 
+## Mise à jour des GitHub Actions pour utiliser Bun
+
+Nous avons mis à jour les fichiers de workflow GitHub Actions pour utiliser Bun au lieu de npm:
+
+1. **Modification de `.github/workflows/lint.yaml`**:
+   
+   Nous avons remplacé la configuration Node.js/npm par l'installation de Bun:
+   
+   ```diff
+     eslint:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v2
+   -     - uses: actions/setup-node@v2.4.1
+   -       with:
+   -         node-version: '16'
+   -         cache: 'npm'
+   -         cache-dependency-path: 'web/package-lock.json'
+   +     - name: Setup Bun
+   +       uses: oven-sh/setup-bun@v1
+   +       with:
+   +         bun-version: latest
+   ```
+
+2. **Mise à jour du message d'erreur dans `build.go`**:
+   
+   Nous avons également mis à jour le message d'erreur dans la fonction `verifyNpmCache` pour refléter l'utilisation de Bun:
+   
+   ```diff
+     if err := cmd.Run(); err != nil {
+   -     log.Fatalf("NPM cache verify: %s", err)
+   +     log.Fatalf("Bun cache verify: %s", err)
+     }
+   ```
+
+Ces modifications permettent d'utiliser Bun à la place de npm dans l'environnement CI/CD, offrant une meilleure cohérence avec l'environnement de développement local qui utilise également Bun.
+
 # Journal des modifications effectuées
 
 ## Modifications du [date d'aujourd'hui]
