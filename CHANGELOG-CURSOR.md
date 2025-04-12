@@ -542,8 +542,8 @@ Nous avons effectué les modifications suivantes:
 1. **Adaptation de la fonction `verifyNpmCache` dans `build.go` pour Bun**:
    
    Bun n'ayant pas d'équivalent à la commande `cache verify` comme npm, nous avons modifié la fonction pour qu'elle soit compatible avec Bun:
-   
-   ```go
+
+```go
    func verifyNpmCache() {
        // Bun n'a pas la commande 'cache verify' comme npm
        if NODE_PACKAGES_MANAGER == "bun" {
@@ -607,7 +607,7 @@ Nous avons effectué les modifications suivantes:
    - name: Build Electron (macOS)
      if: matrix.os == 'macos-latest'
      run: |
-       cd web
+cd web
        export NODE_OPTIONS=--openssl-legacy-provider
        bun run build-electron
        bun electron-builder --mac -p never
@@ -792,23 +792,34 @@ Cette modification a été validée par des tests avec le plugin Helm sur des cl
 
 ### Fichiers modifiés
 - `pkg/plugin/server.go` - Augmentation de la limite de taille maximale des messages gRPC de 200MB à 400MB.
-- `.github/workflows/electron.yaml` - Configuration de Python 2.7 pour la build Electron.
 
 ### Résumé des changements
 - La fonction `CustomGRPCServer` dans le fichier `pkg/plugin/server.go` a été modifiée pour augmenter la limite de taille maximale des messages gRPC de 200MB à 400MB, ce qui permettra le transfert de messages plus volumineux entre le serveur et les clients.
 - La configuration via viper (`client-max-recv-msg-size`) a été remplacée par une valeur fixe de 400MB pour simplifier la configuration.
-- Le workflow GitHub Actions a été modifié pour utiliser Python 2.7 au lieu de Python 3.11 pour la build Electron sur macOS, car le script de création de DMG dans electron-builder utilise la fonction `reload(sys)` qui n'existe pas dans Python 3.
 
 ### Problèmes potentiels et solutions
-#### gRPC
 Si cette modification ne résout pas les problèmes de limite de taille des messages, les étapes suivantes pourraient être envisagées:
 1. Vérifier si d'autres parties du code définissent également des limites de taille pour les messages gRPC.
 2. Examiner si la limite est également définie côté client et la mettre à jour en conséquence.
 3. Vérifier si le fichier `pkg/plugin/api/server.go` contient également des limites de taille qui doivent être mises à jour.
 4. Envisager d'implémenter un mécanisme de streaming pour les données volumineuses plutôt que d'augmenter davantage la limite de taille des messages.
 
-#### Electron Build
-Pour la build Electron, les problèmes suivants pourraient survenir:
-1. Python 2.7 est déprécié et pourrait ne plus être disponible sur les runners GitHub Actions à l'avenir.
-2. Une solution à long terme serait de mettre à jour electron-builder vers une version compatible avec Python 3 ou de patcher le script dmgbuild pour qu'il fonctionne avec Python 3.
-3. Une autre option serait d'utiliser une version plus récente d'electron-builder (>= 23.0.0) qui a résolu ce problème.
+## Modifications du 17 juin 2024
+
+### Fichiers modifiés
+- `.github/workflows/electron.yaml` - Modification de la version de Python pour le build Electron
+
+### Résumé des changements
+- La version de Python utilisée dans le workflow GitHub Actions pour la construction des packages Electron sous macOS a été changée de 3.11 à 2.7.
+- Cette modification est nécessaire car electron-builder utilise un module dmgbuild qui dépend de la fonction `reload()` de Python 2, qui n'est pas disponible nativement dans Python 3.
+- L'erreur qui se produisait était: `NameError: name 'reload' is not defined`, ce qui empêchait la création des fichiers DMG pour macOS.
+
+### Contexte technique
+Le script `dmg-builder/vendor/dmgbuild/core.py` inclus dans electron-builder utilise la fonction `reload(sys)` qui est une fonction intégrée dans Python 2 mais pas dans Python 3. En Python 3, cette fonction a été déplacée vers les modules `importlib` ou `imp`.
+
+Les options alternatives qui ont été envisagées:
+1. Modifier le script dmgbuild pour utiliser `from importlib import reload` ou `from imp import reload` avant d'appeler reload().
+2. Mettre à jour electron-builder vers une version plus récente (>=23.0.3) qui a résolu ce problème.
+3. Utiliser Python 2.7 qui prend en charge nativement la fonction `reload()`.
+
+L'option 3 a été choisie car elle représente la solution la plus simple et la moins invasive pour résoudre le problème actuel.
