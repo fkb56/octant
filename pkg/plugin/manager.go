@@ -17,26 +17,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vmware-tanzu/octant/pkg/event"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-
-	"github.com/vmware-tanzu/octant/pkg/plugin/javascript"
-
 	"github.com/fsnotify/fsnotify"
 	"github.com/hashicorp/go-plugin"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+
 	"github.com/vmware-tanzu/octant/internal/log"
 	"github.com/vmware-tanzu/octant/internal/module"
 	"github.com/vmware-tanzu/octant/internal/portforward"
 	"github.com/vmware-tanzu/octant/pkg/action"
+	"github.com/vmware-tanzu/octant/pkg/event"
 	"github.com/vmware-tanzu/octant/pkg/plugin/api"
+	"github.com/vmware-tanzu/octant/pkg/plugin/javascript"
 	"github.com/vmware-tanzu/octant/pkg/view/component"
-	"google.golang.org/grpc"
 )
 
 // ClientFactory is a factory for creating clients.
