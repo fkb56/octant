@@ -38,3 +38,4 @@ gomock_reflect_*
 # vim undo files
 *.un~
 .history
+octant.log
