@@ -46,6 +46,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: 1.17.x
-      - name: eslint
+      - name: Install dependencies
+        run: |
+          cd web && bun install
+      - name: Format files with Prettier
+        run: |
+          cd web && bun run prettier
+      - name: Run eslint
         run: |
           go run build.go web-lint
