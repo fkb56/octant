@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 /*
@@ -25,13 +26,14 @@ import (
 )
 
 var (
-	VERSION    = "v0.25.1"
-	GOPATH     = os.Getenv("GOPATH")
-	GIT_COMMIT = gitCommit()
-	BUILD_TIME = time.Now().UTC().Format(time.RFC3339)
-	LD_FLAGS   = fmt.Sprintf("-X \"main.buildTime=%s\" -X main.gitCommit=%s", BUILD_TIME, GIT_COMMIT)
-	GO_FLAGS   = fmt.Sprintf("-ldflags=%s", LD_FLAGS)
-	IMAGE_FLAGS = "exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp"
+	VERSION               = "v0.25.1"
+	GOPATH                = os.Getenv("GOPATH")
+	GIT_COMMIT            = gitCommit()
+	BUILD_TIME            = time.Now().UTC().Format(time.RFC3339)
+	LD_FLAGS              = fmt.Sprintf("-X \"main.buildTime=%s\" -X main.gitCommit=%s", BUILD_TIME, GIT_COMMIT)
+	GO_FLAGS              = fmt.Sprintf("-ldflags=%s", LD_FLAGS)
+	IMAGE_FLAGS           = "exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp"
+	NODE_PACKAGES_MANAGER = "bun"
 )
 
 func main() {
@@ -275,12 +277,12 @@ func build() {
 	if runtime.GOOS == "windows" {
 		artifact = "octant.exe"
 	}
-	runCmd("go", nil, "build", "-tags", "embedded " + IMAGE_FLAGS, "-mod=vendor", "-o", "build/"+artifact, GO_FLAGS, "-v", "./cmd/octant")
+	runCmd("go", nil, "build", "-tags", "embedded "+IMAGE_FLAGS, "-mod=vendor", "-o", "build/"+artifact, GO_FLAGS, "-v", "./cmd/octant")
 }
 
 // buildElectron builds an Octant binary without web assets
 func buildElectron() {
-	cleanCmd := newCmd("npm", nil, "run", "clean")
+	cleanCmd := newCmd(NODE_PACKAGES_MANAGER, nil, "run", "clean")
 	cleanCmd.Stdout = os.Stdout
 	cleanCmd.Stderr = os.Stderr
 	cleanCmd.Stdin = os.Stdin
@@ -338,8 +340,8 @@ func goFmt(update bool) {
 }
 
 func webDeps(opts ...string) {
-	args := append([]string{"ci"}, opts...)
-	cmd := newCmd("npm", nil, args...)
+	args := append([]string{"install", "--frozen-lockfile"}, opts...)
+	cmd := newCmd(NODE_PACKAGES_MANAGER, nil, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -350,7 +352,7 @@ func webDeps(opts ...string) {
 }
 
 func webTest() {
-	cmd := newCmd("npm", nil, "run", "test:headless")
+	cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "run", "test:headless")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -361,7 +363,7 @@ func webTest() {
 }
 
 func webBuild() {
-	cmd := newCmd("npm", nil, "run", "build")
+	cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "run", "build")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -372,18 +374,28 @@ func webBuild() {
 }
 
 func webBuildElectron() {
-	cmd := newCmd("npm", nil, "run", "electron:build")
+	// Ajouter un environnement Python
+	pythonEnv := os.Environ()
+	pythonPath, err := exec.LookPath("python3")
+	if err == nil {
+		pythonDir := filepath.Dir(pythonPath)
+		pythonEnv = append(pythonEnv, "PYTHON_PATH="+pythonPath)
+		pythonEnv = append(pythonEnv, "PATH="+pythonDir+":"+os.Getenv("PATH"))
+	}
+
+	cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "run", "electron:build")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Dir = "./web"
+	cmd.Env = pythonEnv
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("web-build-electron: build : %s", err)
 	}
 }
 
 func webLint() {
-	cmd := newCmd("npm", nil, "run", "lint")
+	cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "run", "lint")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -397,7 +409,7 @@ func serve() {
 	var wg sync.WaitGroup
 
 	uiVars := map[string]string{"API_BASE": "http://localhost:7777"}
-	uiCmd := newCmd("npm", uiVars, "run", "start")
+	uiCmd := newCmd(NODE_PACKAGES_MANAGER, uiVars, "run", "start")
 	uiCmd.Stdout = os.Stdout
 	uiCmd.Stderr = os.Stderr
 	uiCmd.Stdin = os.Stdin
@@ -410,7 +422,7 @@ func serve() {
 	go func() {
 		defer wg.Done()
 		if err := uiCmd.Wait(); err != nil {
-			log.Fatalf("serve: npm run: %s", err)
+			log.Fatalf("serve:NODE_PACKAGES_MANAGER run: %s", err)
 		}
 	}()
 
@@ -539,7 +551,7 @@ func verifyRegistry() {
 }
 
 func verifyNpmCache() {
-	cmd := newCmd("npm", nil, "cache", "verify")
+	cmd := newCmd(NODE_PACKAGES_MANAGER, nil, "cache", "verify")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin

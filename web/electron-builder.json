@@ -1,10 +1,12 @@
 {
-  "appId": "com.vmware.tanzu.octant",
+  "appId": "com.vmware.octant",
   "productName": "Octant",
   "directories": {
     "output": "release/"
   },
-  "extraResources": ["**/extraResources/**", "!dist/"],
+  "extraResources": [
+    "extraResources/octant"
+  ],
   "files": [
     "**/*",
     "!**/*.ts",
@@ -39,5 +41,9 @@
     "icon": "dist/octant/assets/icons/icon.png",
     "category": "development",
     "target": ["AppImage"]
-  }
+  },
+  "nodeGypRebuild": false,
+  "npmRebuild": false,
+  "buildDependenciesFromSource": false,
+  "electronDist": "/usr/local/bin"
 }
