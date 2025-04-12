@@ -24,7 +24,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '2.7'
       - name: Install dependencies
         run: |
           cd web && bun install
