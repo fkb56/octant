@@ -331,6 +331,48 @@ git add pkg/plugin/manager.go pkg/plugin/server.go CHANGELOG-CURSOR.md
 git commit -m "fix: configurer les limites gRPC pour les plugins externes (Helm)"
 ```
 
+## Mise à jour des actions GitHub vers les versions récentes
+
+Pour résoudre les problèmes liés aux versions dépréciées des actions GitHub, nous avons mis à jour toutes les actions dans les fichiers de workflow vers leurs versions les plus récentes:
+
+1. **Mise à jour des actions de configuration:**
+   
+   ```diff
+   - uses: actions/setup-go@v2
+   + uses: actions/setup-go@v5
+   ```
+   
+   ```diff
+   - uses: actions/checkout@v2
+   + uses: actions/checkout@v4
+   ```
+   
+   ```diff
+   - uses: oven-sh/setup-bun@v1
+   + uses: oven-sh/setup-bun@v2
+   ```
+
+2. **Mise à jour des actions de gestion des artifacts:**
+   
+   ```diff
+   - uses: actions/upload-artifact@v2
+   + uses: actions/upload-artifact@v4
+   ```
+   
+   ```diff
+   - uses: actions/download-artifact@v2
+   + uses: actions/download-artifact@v4
+   ```
+
+Ces mises à jour ont été appliquées à tous les fichiers de workflow:
+- `.github/workflows/lint.yaml`
+- `.github/workflows/electron.yaml`
+- `.github/workflows/preflight-checks.yaml`
+- `.github/workflows/nightly.yaml`
+- `.github/workflows/verify-generated.yaml`
+
+Cette mise à jour résout le problème de dépréciation signalé par GitHub: "This request has been automatically failed because it uses a deprecated version of `actions/upload-artifact`."
+
 ## Mise à jour des GitHub Actions pour utiliser Bun
 
 Nous avons mis à jour les fichiers de workflow GitHub Actions pour utiliser Bun au lieu de npm:
