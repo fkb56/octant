@@ -19,12 +19,15 @@ import (
 	ocontext "github.com/vmware-tanzu/octant/internal/context"
 	"github.com/vmware-tanzu/octant/pkg/event"
 
+	"github.com/spf13/viper"
 	"github.com/vmware-tanzu/octant/internal/gvk"
 	"github.com/vmware-tanzu/octant/internal/portforward"
 	"github.com/vmware-tanzu/octant/pkg/action"
 	"github.com/vmware-tanzu/octant/pkg/cluster"
 	"github.com/vmware-tanzu/octant/pkg/plugin/api/proto"
 	"github.com/vmware-tanzu/octant/pkg/store"
+
+	"google.golang.org/grpc"
 )
 
 // DashboardMetadataKey is a type used for metadata keys passed by plugins
@@ -226,6 +229,20 @@ func NewGRPCServer(service Service) *grpcServer {
 type grpcServer struct {
 	service Service
 	proto.UnimplementedDashboardServer
+}
+
+// GetGRPCServerOptions returns the gRPC server options including message size limits
+func GetGRPCServerOptions() []grpc.ServerOption {
+	maxMsgSize := viper.GetInt("server-max-recv-msg-size")
+	if maxMsgSize <= 0 {
+		// Default to 100MB if not specified
+		maxMsgSize = 100 * 1024 * 1024
+	}
+
+	return []grpc.ServerOption{
+		grpc.MaxRecvMsgSize(maxMsgSize),
+		grpc.MaxSendMsgSize(maxMsgSize),
+	}
 }
 
 var _ proto.DashboardServer = (*grpcServer)(nil)
