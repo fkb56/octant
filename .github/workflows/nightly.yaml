@@ -4,7 +4,6 @@ on:
     - cron:  '0 0 * * *'
   workflow_dispatch:
 
-
 jobs:
   nightly-build:
     name: Build nightly
@@ -15,57 +14,57 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-#      - name: Setup Bun
-#        uses: oven-sh/setup-bun@v2
-#        with:
-#          bun-version: latest
-#      - uses: actions/setup-go@v5
-#        with:
-#          go-version: 1.17.x
-#      - name: Build web assets
-#        run: |
-#          go run build.go web-build
-#      - uses: actions/upload-artifact@v4
-#        with:
-#          name: bundle
-#          path: web/dist
-#      - name: Build electron binary
-#        env:
-#          GOFLAGS: -mod=vendor
-#        run: |
-#          go run build.go build-electron
-#      - name: Build electron
-#        uses: samuelmeuli/action-electron-builder@v1.6.0
-#        with:
-#          github_token: ${{ secrets.GITHUB_TOKEN }}
-#          package_root: 'web'
-#          build_script_name: 'build-electron'
-#      - uses: google-github-actions/upload-cloud-storage@v2
-#        with:
-#          credentials: ${{ secrets.GOOGLE_APP_JSON }}
-#          path: web/release
-#          destination: octant-nightlies/electron
-#
-#  push:
-#    name: Run goreleaser
-#    needs: [nightly-build]
-#    runs-on: ubuntu-latest
-#    container: goreleaser/goreleaser:v1.0.0
-#    steps:
-#      - uses: actions/checkout@v4
-#        with:
-#          fetch-depth: 0
-#      - uses: actions/download-artifact@v4
-#        with:
-#          name: bundle
-#          path: web/dist
-#      - name: Run goreleaser
-#        run: |
-#          git fetch --tags
-#          git tag "$(git describe --abbrev=0)+dev"
-#          echo "$GOOGLE_APPLICATION_JSON" > /tmp/gs.json
-#          goreleaser -f .goreleaser-nightly.yml --rm-dist --skip-validate
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          GOOGLE_APPLICATION_JSON: ${{ secrets.GOOGLE_APP_JSON }}
-#          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gs.json
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.17.x
+      - name: Build web assets
+        run: |
+          go run build.go web-build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle
+          path: web/dist
+      - name: Build electron binary
+        env:
+          GOFLAGS: -mod=vendor
+        run: |
+          go run build.go build-electron
+      - name: Build electron
+        uses: samuelmeuli/action-electron-builder@v1.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          package_root: 'web'
+          build_script_name: 'build-electron'
+      - uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          credentials: ${{ secrets.GOOGLE_APP_JSON }}
+          path: web/release
+          destination: octant-nightlies/electron
+
+  push:
+    name: Run goreleaser
+    needs: [nightly-build]
+    runs-on: ubuntu-latest
+    container: goreleaser/goreleaser:v1.0.0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: bundle
+          path: web/dist
+      - name: Run goreleaser
+        run: |
+          git fetch --tags
+          git tag "$(git describe --abbrev=0)+dev"
+          echo "$GOOGLE_APPLICATION_JSON" > /tmp/gs.json
+          goreleaser -f .goreleaser-nightly.yml --rm-dist --skip-validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_APPLICATION_JSON: ${{ secrets.GOOGLE_APP_JSON }}
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gs.json
