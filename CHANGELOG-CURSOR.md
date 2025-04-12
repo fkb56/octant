@@ -787,3 +787,19 @@ export OCTANT_SERVER_MAX_RECV_MSG_SIZE=209715200 # 200MB
 ```
 
 Cette modification a été validée par des tests avec le plugin Helm sur des clusters contenant de nombreuses ressources.
+
+## Modifications du 16 juin 2024
+
+### Fichiers modifiés
+- `pkg/plugin/server.go` - Augmentation de la limite de taille maximale des messages gRPC de 200MB à 400MB.
+
+### Résumé des changements
+- La fonction `CustomGRPCServer` dans le fichier `pkg/plugin/server.go` a été modifiée pour augmenter la limite de taille maximale des messages gRPC de 200MB à 400MB, ce qui permettra le transfert de messages plus volumineux entre le serveur et les clients.
+- La configuration via viper (`client-max-recv-msg-size`) a été remplacée par une valeur fixe de 400MB pour simplifier la configuration.
+
+### Problèmes potentiels et solutions
+Si cette modification ne résout pas les problèmes de limite de taille des messages, les étapes suivantes pourraient être envisagées:
+1. Vérifier si d'autres parties du code définissent également des limites de taille pour les messages gRPC.
+2. Examiner si la limite est également définie côté client et la mettre à jour en conséquence.
+3. Vérifier si le fichier `pkg/plugin/api/server.go` contient également des limites de taille qui doivent être mises à jour.
+4. Envisager d'implémenter un mécanisme de streaming pour les données volumineuses plutôt que d'augmenter davantage la limite de taille des messages.
