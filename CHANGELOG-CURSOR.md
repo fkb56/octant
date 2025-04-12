@@ -330,3 +330,21 @@ Pour vérifier que les modifications sont effectives:
 git add pkg/plugin/manager.go pkg/plugin/server.go CHANGELOG-CURSOR.md
 git commit -m "fix: configurer les limites gRPC pour les plugins externes (Helm)"
 ```
+
+# Journal des modifications effectuées
+
+## Modifications du [date d'aujourd'hui]
+
+### Fichiers modifiés
+- `.github/workflows/electron.yaml` - Modifications du workflow Electron
+- `web/package.json` - Mise à jour des dépendances
+- `web/bun.lockb` - Mise à jour du fichier de verrouillage des dépendances
+
+### Nouveaux fichiers
+- `web/electron/application-menu.js.map` - Fichier de mapping pour le menu de l'application
+- `web/electron/paths.js.map` - Fichier de mapping pour les chemins
+- `web/electron/store.js.map` - Fichier de mapping pour le stockage
+- `web/electron/tray-menu.js.map` - Fichier de mapping pour le menu de la barre d'état
+
+### Résumé des changements
+Les modifications concernent principalement les configurations Electron et les mises à jour des dépendances. Les fichiers .map sont des fichiers générés automatiquement pour faciliter le débogage.

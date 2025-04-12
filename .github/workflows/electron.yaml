@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v2.4.1
         with:
           node-version: '16'
-          cache: 'npm'
+          cache: 'bun'
           cache-dependency-path: 'web/package-lock.json'
       - uses: actions/setup-go@v2
         with:
