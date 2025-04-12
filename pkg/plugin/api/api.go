@@ -59,6 +59,7 @@ func (a *grpcAPI) Start(ctx context.Context) error {
 
 	s := grpc.NewServer(
 		grpc.MaxRecvMsgSize(viper.GetInt("client-max-recv-msg-size")),
+		grpc.MaxSendMsgSize(viper.GetInt("client-max-recv-msg-size")),
 	)
 
 	proto.RegisterDashboardServer(s, dashboardServer)

@@ -212,30 +212,37 @@ go run build.go serve
 
 Ces modifications devraient résoudre les erreurs de compilation TypeScript et permettre à l'application de fonctionner correctement. 
 
-## Augmentation de la limite de taille des messages gRPC
+## Mise à jour des limites de taille des messages gRPC côté serveur et client
 
-Pour résoudre l'erreur de taille de message gRPC:
-```
-generate content: grpc client content: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (19752553 vs. 16777216)
-```
+Après avoir augmenté la constante `MaxMessageSize` à 32 Mo, nous avons constaté que l'erreur `ResourceExhausted` persistait. Cela était dû au fait que nous avions seulement augmenté la limite côté client pour la réception, mais pas pour l'envoi, et que nous n'avions pas configuré la limite d'envoi côté serveur.
 
-Nous avons apporté la modification suivante:
+Nous avons donc apporté les modifications supplémentaires suivantes:
 
-1. **Augmentation de la constante MaxMessageSize** dans le fichier `pkg/plugin/api/client.go`:
+1. **Ajout de l'option MaxSendMsgSize au serveur gRPC** dans le fichier `pkg/plugin/api/api.go`:
    ```diff
-   - const MaxMessageSize int = 1024 * 1024 * 16
-   + const MaxMessageSize int = 1024 * 1024 * 32
+     s := grpc.NewServer(
+         grpc.MaxRecvMsgSize(viper.GetInt("client-max-recv-msg-size")),
+   +     grpc.MaxSendMsgSize(viper.GetInt("client-max-recv-msg-size")),
+     )
    ```
 
-La constante `MaxMessageSize` est utilisée par défaut pour configurer:
-- La limite de réception côté client via `grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(...))`
-- La limite de réception côté serveur via `grpc.MaxRecvMsgSize(...)` dans la configuration du serveur gRPC
+2. **Ajout de l'option MaxCallSendMsgSize au client gRPC** dans le fichier `pkg/plugin/api/client.go`:
+   ```diff
+     conn, err := grpc.Dial(address,
+         grpc.WithInsecure(),
+   -     grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(viper.GetInt("client-max-recv-msg-size"))),
+   +     grpc.WithDefaultCallOptions(
+   +         grpc.MaxCallRecvMsgSize(viper.GetInt("client-max-recv-msg-size")),
+   +         grpc.MaxCallSendMsgSize(viper.GetInt("client-max-recv-msg-size")),
+   +     ),
+     )
+   ```
 
-Cette modification augmente la limite de 16 Mo à 32 Mo, ce qui devrait être suffisant pour gérer les messages volumineux générés par le plugin Helm.
+Ces modifications permettent d'augmenter à la fois les limites d'envoi et de réception des messages gRPC, ce qui devrait résoudre complètement le problème de `ResourceExhausted`.
 
 ### Tests de la modification
 
-Pour vérifier que la modification est effective:
+Pour vérifier que les modifications sont effectives:
 
 1. Redémarrez Octant: `go run build.go serve`
 2. Vérifiez qu'il n'y a plus d'erreur `ResourceExhausted` dans les logs
@@ -244,6 +251,6 @@ Pour vérifier que la modification est effective:
 ### Commit des modifications
 
 ```bash
-git add pkg/plugin/api/client.go CHANGELOG-CURSOR.md
-git commit -m "fix: augmenter la limite de taille des messages gRPC de 16Mo à 32Mo"
+git add pkg/plugin/api/api.go pkg/plugin/api/client.go CHANGELOG-CURSOR.md
+git commit -m "fix: augmenter les limites d'envoi et de réception des messages gRPC pour résoudre l'erreur ResourceExhausted"
 ```
