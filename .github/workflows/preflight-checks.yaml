@@ -1,15 +1,16 @@
 name: preflight-checks
-on:
-  push:
-    tags:
-    - 'v*'
-    branches:
-    - master
-    - release-*
-  pull_request:
-    branches:
-    - master
-    - release-*
+on: [push, pull_request]
+# on:
+#   push:
+#     tags:
+#     - 'v*'
+#     branches:
+#     - master
+#     - release-*
+#   pull_request:
+#     branches:
+#     - master
+#     - release-*
 
 jobs:
   go_unit_tests:
