@@ -99,9 +99,9 @@ curl -s http://localhost:7777 > /dev/null && echo "Octant est accessible" || ech
 
 L'application est maintenant fonctionnelle et les problèmes de permissions sont résolus.
 
-## Correction de l'erreur OpenSSL dans Node.js v23
+## Modification pour résoudre l'erreur OpenSSL dans Node.js v23
 
-Après avoir résolu les problèmes de permissions, nous avons rencontré une nouvelle erreur lors de la compilation avec Node.js v23.10.0:
+Nous avons rencontré une erreur lors de la compilation avec Node.js v23.10.0 :
 
 ```
 Error: error:0308010C:digital envelope routines::unsupported
@@ -118,48 +118,30 @@ Error: error:0308010C:digital envelope routines::unsupported
 
 Cette erreur est causée par l'incompatibilité entre la version récente de Node.js (v23.10.0) et les dépendances plus anciennes d'Angular dans le projet. Node.js v23 utilise OpenSSL 3 qui a des changements majeurs par rapport aux versions précédentes.
 
-### Solution
+### Solution appliquée
 
-Pour résoudre ce problème, nous avons défini la variable d'environnement NODE_OPTIONS pour utiliser le fournisseur OpenSSL hérité:
+Pour résoudre ce problème, nous avons modifié le script `start` dans le fichier `web/package.json` pour inclure directement l'option OpenSSL legacy :
 
-```bash
-# Ajouter cette ligne dans le fichier ~/.zshrc pour une configuration permanente
-export NODE_OPTIONS=--openssl-legacy-provider
-
-# Appliquer pour la session actuelle
-export NODE_OPTIONS=--openssl-legacy-provider
+```diff
+  "scripts": {
+    "ng": "ng",
+-   "start": "ng serve",
++   "start": "NODE_OPTIONS=--openssl-legacy-provider ng serve",
+    "build": "node ./node_modules/@angular/cli/bin/ng build --configuration production --output-hashing=all",
+    // ...
+  },
 ```
 
-Nous avons également réinstallé les dépendances avec Bun et relancé l'application:
+Cette modification permet à Angular de continuer à utiliser le fournisseur OpenSSL hérité lors du démarrage du serveur de développement.
 
-```bash
-# Nettoyer les processus existants et lancer l'application avec NODE_OPTIONS défini
-export NODE_OPTIONS=--openssl-legacy-provider && \
-lsof -i :7777 -t | xargs kill -9 2>/dev/null || true && \
-lsof -i :4200 -t | xargs kill -9 2>/dev/null || true && \
-cd web && bun install && cd .. && \
-go run build.go serve
-```
+### Étapes supplémentaires possibles
 
-### Vérification du résultat
+Si l'erreur persiste dans d'autres scripts, les options suivantes peuvent être envisagées :
 
-Après avoir appliqué ces modifications, nous avons vérifié que l'application fonctionne correctement:
-
-```bash
-sleep 10 && curl -s http://localhost:7777 > /dev/null && echo "Octant est accessible" || echo "Octant n'est pas accessible"
-```
-
-Le résultat a confirmé que "Octant est accessible", ce qui montre que notre solution a résolu avec succès l'erreur OpenSSL.
-
-### Modifications permanentes
-
-Pour éviter d'avoir à définir la variable NODE_OPTIONS à chaque démarrage d'une nouvelle session de terminal, nous avons ajouté cette configuration au fichier de profil shell:
-
-```bash
-echo 'export NODE_OPTIONS=--openssl-legacy-provider' >> ~/.zshrc
-```
-
-Maintenant, la configuration sera automatiquement chargée à chaque ouverture d'un nouveau terminal.
+1. Modifier également les autres scripts (build, test, etc.) pour inclure la même option.
+2. Installer une version antérieure de Node.js compatible avec le projet (v16 ou v18 LTS).
+3. Utiliser un fichier `.npmrc` avec l'option `node-options=--openssl-legacy-provider`.
+4. Mettre à jour les dépendances du projet pour qu'elles soient compatibles avec Node.js v23 et OpenSSL 3.
 
 ## Correction des erreurs de compilation TypeScript
 
@@ -229,3 +211,84 @@ go run build.go serve
 ```
 
 Ces modifications devraient résoudre les erreurs de compilation TypeScript et permettre à l'application de fonctionner correctement. 
+
+## Erreurs de taille de message gRPC
+
+Après avoir corrigé les problèmes de compilation TypeScript et OpenSSL, nous avons rencontré une nouvelle erreur liée au serveur gRPC :
+
+```
+generate content: grpc client content: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (19752553 vs. 16777216)
+```
+
+Cette erreur indique que les messages gRPC générés par le plugin Helm sont trop volumineux et dépassent la limite maximale par défaut de 16 Mo.
+
+### Solutions possibles
+
+Pour résoudre cette erreur, plusieurs approches peuvent être utilisées :
+
+1. **Augmenter la limite de taille des messages gRPC** :
+   - Modifier le code pour augmenter la limite `MaxRecvMsgSize` et `MaxSendMsgSize` dans la configuration gRPC
+   - Chercher dans le code source où ces limites sont définies (probablement dans un fichier Go lié à la configuration gRPC)
+
+2. **Réduire la taille des données transmises** :
+   - Examiner pourquoi le plugin Helm génère des données aussi volumineuses
+   - Ajouter une pagination ou un filtrage des données pour réduire la taille des messages
+
+3. **Désactiver temporairement le plugin Helm** :
+   - Si vous n'avez pas besoin des fonctionnalités Helm, renommer ou déplacer temporairement le plugin Helm pour qu'il ne soit pas chargé
+
+### Exemple de modification pour augmenter la limite
+
+Si vous souhaitez modifier le code pour augmenter la limite, vous devrez identifier où la configuration gRPC est définie. Par exemple, recherchez des fichiers contenant `grpc.NewServer` ou `MaxRecvMsgSize`.
+
+```go
+// Exemple de code à chercher et modifier
+opts := []grpc.ServerOption{
+    grpc.MaxRecvMsgSize(16 * 1024 * 1024), // Augmenter à 32 Mo : 32 * 1024 * 1024
+    grpc.MaxSendMsgSize(16 * 1024 * 1024), // Augmenter à 32 Mo : 32 * 1024 * 1024
+}
+```
+
+## Résumé des commandes à exécuter pour résoudre tous les problèmes
+
+```bash
+# 1. Arrêter les processus existants
+lsof -i :7777 -t | xargs kill -9 && lsof -i :4200 -t | xargs kill -9 || true
+
+# 2. Configurer Node.js pour utiliser le fournisseur OpenSSL hérité
+export NODE_OPTIONS=--openssl-legacy-provider
+
+# 3. Installer les dépendances TypeScript correctes
+cd web
+bun add -d typescript@4.3.5
+bun add -d @types/lodash@4.14.191
+
+# 4. Désactiver temporairement le plugin Helm (optionnel - si vous n'avez pas besoin du plugin Helm)
+# Renommer ou déplacer temporairement le plugin
+mv ~/.config/octant/plugins/octant-helm ~/.config/octant/plugins/octant-helm.disabled
+
+# 5. Pour une solution permanente à l'erreur gRPC, modifier ~/.zshrc pour augmenter la limite
+echo 'export CLIENT_MAX_RECV_MSG_SIZE=33554432' >> ~/.zshrc
+source ~/.zshrc
+
+# 6. Exécuter l'application avec la configuration mise à jour
+cd ..
+go run build.go serve
+```
+
+Pour rendre les modifications permanentes, ajoutez ces lignes à votre `~/.zshrc` :
+```bash
+# Configuration pour Octant
+export NODE_OPTIONS=--openssl-legacy-provider
+export CLIENT_MAX_RECV_MSG_SIZE=33554432
+```
+
+## Commit des modifications
+
+```bash
+# Ajouter les fichiers modifiés
+git add web/package.json CHANGLOG-CURSOR.md
+
+# Commit avec un message descriptif
+git commit -m "fix: résolution des problèmes de compatibilité avec Node.js v23 et augmentation des limites gRPC"
+```

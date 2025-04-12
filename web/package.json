@@ -14,9 +14,9 @@
   "main": "main.js",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "node ./node_modules/@angular/cli/bin/ng build --configuration production --output-hashing=all",
-    "build-electron": "npx tsc main.ts && npm run build -- --base-href ./",
+    "start": "NODE_OPTIONS=--openssl-legacy-provider ng serve",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider node ./node_modules/@angular/cli/bin/ng build --configuration production --output-hashing=all",
+    "build-electron": "NODE_OPTIONS=--openssl-legacy-provider npx tsc main.ts && npm run build -- --base-href ./",
     "test": "ng test --watch=false --browsers=ElectronDebug",
     "test:headless": "ng test --watch=false --browsers=ChromeHeadless --source-map=false",
     "lint": "prettier -c 'src/**/*.ts'",
